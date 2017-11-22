@@ -783,57 +783,74 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
                          retryIntervalMultiplier, new Exception("trace"));
       }
 
-      long interval = retryInterval;
+      //first attempt of rery connection is executed without timeout, so it is not scheduled
+      new ScheduledRetryConnection( 0, retryInterval).run();
+   }
 
-      int count = 0;
+   /**
+    * Each attempt of retry connection has to be scheduled to allow other threads to be executed while retry connection is still runnning.
+    */
+   private class ScheduledRetryConnection implements Runnable {
+      private int count;
+      private long interval;
 
-      while (clientProtocolManager.isAlive()) {
-         if (logger.isDebugEnabled()) {
-            logger.debug("Trying reconnection attempt " + count + "/" + reconnectAttempts);
-         }
+      public ScheduledRetryConnection(int count, long interval) {
+         this.count = count;
+         this.interval = interval;
+      }
 
-         if (getConnection() != null) {
+      @Override
+      public void run() {
+
+         if (clientProtocolManager.isAlive()) {
             if (logger.isDebugEnabled()) {
-               logger.debug("Reconnection successful");
+               logger.debug("Trying reconnection attempt " + count + "/" + reconnectAttempts);
             }
-            return;
-         } else {
-            // Failed to get connection
 
-            if (reconnectAttempts != 0) {
-               count++;
-
-               if (reconnectAttempts != -1 && count == reconnectAttempts) {
-                  if (reconnectAttempts != 1) {
-                     ActiveMQClientLogger.LOGGER.failedToConnectToServer(reconnectAttempts);
-                  }
-
-                  return;
+            if (getConnection() != null) {
+               if (logger.isDebugEnabled()) {
+                  logger.debug("Reconnection successful");
                }
-
-               if (ClientSessionFactoryImpl.logger.isTraceEnabled()) {
-                  ClientSessionFactoryImpl.logger.trace("Waiting " + interval + " milliseconds before next retry. RetryInterval=" + retryInterval + " and multiplier=" + retryIntervalMultiplier);
-               }
-
-               try {
-                  if (clientProtocolManager.waitOnLatch(interval)) {
+               return;
+            } else {
+               // Failed to get connection
+               if (reconnectAttempts != 0) {
+                  count++;
+                  if (reconnectAttempts != -1 && count == reconnectAttempts) {
+                     if (reconnectAttempts != 1) {
+                        ActiveMQClientLogger.LOGGER.failedToConnectToServer(reconnectAttempts);
+                     }
                      return;
                   }
-               } catch (InterruptedException ignore) {
-                  throw new ActiveMQInterruptedException(createTrace);
+
+                  try {
+                     if (clientProtocolManager.waitOnLatch(1)) {
+                        return;
+                     }
+                  } catch (InterruptedException ignore) {
+                     throw new ActiveMQInterruptedException(createTrace);
+                  }
+
+                  // Exponential back-off
+                  long newInterval = (long) (interval * retryIntervalMultiplier);
+
+                  if (newInterval > maxRetryInterval) {
+                     newInterval = maxRetryInterval;
+                  }
+
+                  interval = newInterval;
+
+                  if (ClientSessionFactoryImpl.logger.isTraceEnabled()) {
+                     ClientSessionFactoryImpl.logger.trace("Waiting " + interval + " milliseconds before next retry. RetryInterval=" + retryInterval + " and multiplier=" + retryIntervalMultiplier);
+                  }
+
+                  ScheduledRetryConnection command = new ScheduledRetryConnection(count, interval);
+                  //schedule next check
+                  scheduledThreadPool.schedule(command, interval, TimeUnit.MILLISECONDS);
+               } else {
+                  logger.debug("Could not connect to any server. Didn't have reconnection configured on the ClientSessionFactory");
+                  return;
                }
-
-               // Exponential back-off
-               long newInterval = (long) (interval * retryIntervalMultiplier);
-
-               if (newInterval > maxRetryInterval) {
-                  newInterval = maxRetryInterval;
-               }
-
-               interval = newInterval;
-            } else {
-               logger.debug("Could not connect to any server. Didn't have reconnection configured on the ClientSessionFactory");
-               return;
             }
          }
       }

@@ -930,10 +930,37 @@ public final class ClientConsumerImpl implements ClientConsumerInternal {
 
       sessionExecutor.execute(future);
 
-      boolean ok = future.await(ClientConsumerImpl.CLOSE_TIMEOUT_MILLISECONDS);
+      //ait for result using scheduled executor
+      new AwaitFutureTask(future).run();
+   }
 
-      if (!ok) {
-         ActiveMQClientLogger.LOGGER.timeOutWaitingForProcessing();
+   /**
+    * Wait for future result has to be scheduled to allow other tasks to be executed during waiting.
+    * (originak code - future.await(ClientConsumerImpl.CLOSE_TIMEOUT_MILLISECONDS))
+    */
+   private class AwaitFutureTask implements Runnable {
+      private FutureLatch futureLatch;
+      private long start;
+
+      public AwaitFutureTask(FutureLatch futureLatch) {
+         this.futureLatch = futureLatch;
+         this.start = System.currentTimeMillis();
+      }
+
+      @Override
+      public void run() {
+         //dont wait for a long tome, wait period is frced by scheduling tasks into future
+         boolean ok = futureLatch.await(1);
+
+         if (!ok) {
+            if(System.currentTimeMillis() > start + ClientConsumerImpl.CLOSE_TIMEOUT_MILLISECONDS) {
+               ActiveMQClientLogger.LOGGER.timeOutWaitingForProcessing();
+            } else {
+               sessionExecutor.execute(this);
+               //TODO scheduled executor shoul be used
+//               scheduledThreadPool.execute(this, 500, TimeUnit.MILLISECONDS);
+            }
+         }
       }
    }
 
