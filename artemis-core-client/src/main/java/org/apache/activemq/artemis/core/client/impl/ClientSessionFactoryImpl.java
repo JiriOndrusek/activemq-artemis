@@ -21,6 +21,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -784,17 +785,34 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
       }
 
       //first attempt of rery connection is executed without timeout, so it is not scheduled
-      new ScheduledRetryConnection( 0, retryInterval).run();
+      new OrderedRetryConnection( 0, retryInterval).run();
    }
 
-   /**
-    * Each attempt of retry connection has to be scheduled to allow other threads to be executed while retry connection is still runnning.
-    */
    private class ScheduledRetryConnection implements Runnable {
       private int count;
       private long interval;
 
       public ScheduledRetryConnection(int count, long interval) {
+         this.count = count;
+         this.interval = interval;
+      }
+
+      @Override
+      public void run() {
+         orderedExecutorFactory.getExecutor().execute(new OrderedRetryConnection(count, interval));
+      }
+   }
+
+
+
+   /**
+    * Each attempt of retry connection has to be scheduled to allow other threads to be executed while retry connection is still runnning.
+    */
+   private class OrderedRetryConnection implements Runnable {
+      private int count;
+      private long interval;
+
+      public OrderedRetryConnection(int count, long interval) {
          this.count = count;
          this.interval = interval;
       }

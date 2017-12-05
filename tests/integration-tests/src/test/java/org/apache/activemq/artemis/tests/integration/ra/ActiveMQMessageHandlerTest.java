@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.api.core.client.ActiveMQClient;
 import org.apache.activemq.artemis.api.core.client.ClientMessage;
 import org.apache.activemq.artemis.api.core.client.ClientProducer;
 import org.apache.activemq.artemis.api.core.client.ClientSession;
@@ -299,6 +300,8 @@ public class ActiveMQMessageHandlerTest extends ActiveMQRATestBase {
 
    @Test
    public void testServerShutdownAndReconnect() throws Exception {
+      ActiveMQClient.clearThreadPools();
+      ActiveMQClient.setGlobalThreadPoolProperties(2, 1);
       ActiveMQResourceAdapter qResourceAdapter = newResourceAdapter();
       qResourceAdapter.setReconnectAttempts(-1);
       qResourceAdapter.setCallTimeout(500L);
