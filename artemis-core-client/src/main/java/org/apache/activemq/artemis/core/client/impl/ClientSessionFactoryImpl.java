@@ -29,6 +29,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -236,7 +237,7 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
    public void connect(final int initialConnectAttempts,
                        final boolean failoverOnInitialConnection) throws ActiveMQException {
       // Get the connection
-      getConnectionWithRetry(initialConnectAttempts);
+      getConnectionWithRetryBlocking(initialConnectAttempts);
 
       if (connection == null) {
          StringBuilder msg = new StringBuilder("Unable to connect to server using configuration ").append(connectorConfig);
@@ -612,7 +613,8 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
 
                connector = null;
 
-               reconnectSessions(oldConnection, reconnectAttempts, me);
+               //TODO
+               reconnectSessions(oldConnection, reconnectAttempts, me, () -> {});
 
                if (oldConnection != null) {
                   oldConnection.destroy();
@@ -732,7 +734,8 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
     */
    private void reconnectSessions(final RemotingConnection oldConnection,
                                   final int reconnectAttempts,
-                                  final ActiveMQException cause) {
+                                  final ActiveMQException cause,
+                                  Runnable onComplete) {
       HashSet<ClientSessionInternal> sessionsToFailover;
       synchronized (sessions) {
          sessionsToFailover = new HashSet<>(sessions);
@@ -742,38 +745,46 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
          session.preHandleFailover(connection);
       }
 
-      getConnectionWithRetry(reconnectAttempts);
+      getConnectionWithRetry(reconnectAttempts, false, null, () -> {
+         if (connection == null) {
+            if (!clientProtocolManager.isAlive())
+               ActiveMQClientLogger.LOGGER.failedToConnectToServer();
 
-      if (connection == null) {
-         if (!clientProtocolManager.isAlive())
-            ActiveMQClientLogger.LOGGER.failedToConnectToServer();
-
-         return;
-      }
-
-      List<FailureListener> oldListeners = oldConnection.getFailureListeners();
-
-      List<FailureListener> newListeners = new ArrayList<>(connection.getFailureListeners());
-
-      for (FailureListener listener : oldListeners) {
-         // Add all apart from the old DelegatingFailureListener
-         if (listener instanceof DelegatingFailureListener == false) {
-            newListeners.add(listener);
+            return;
          }
-      }
 
-      connection.setFailureListeners(newListeners);
+         List<FailureListener> oldListeners = oldConnection.getFailureListeners();
 
-      // This used to be done inside failover
-      // it needs to be done on the protocol
-      ((CoreRemotingConnection) connection).syncIDGeneratorSequence(((CoreRemotingConnection) oldConnection).getIDGeneratorSequence());
+         List<FailureListener> newListeners = new ArrayList<>(connection.getFailureListeners());
 
-      for (ClientSessionInternal session : sessionsToFailover) {
-         session.handleFailover(connection, cause);
-      }
+         for (FailureListener listener : oldListeners) {
+            // Add all apart from the old DelegatingFailureListener
+            if (listener instanceof DelegatingFailureListener == false) {
+               newListeners.add(listener);
+            }
+         }
+
+         connection.setFailureListeners(newListeners);
+
+         // This used to be done inside failover
+         // it needs to be done on the protocol
+         ((CoreRemotingConnection) connection).syncIDGeneratorSequence(((CoreRemotingConnection) oldConnection).getIDGeneratorSequence());
+
+         for (ClientSessionInternal session : sessionsToFailover) {
+            session.handleFailover(connection, cause);
+         }
+
+         if(onComplete != null) {
+            onComplete.run();
+         }
+      });
    }
 
-   private void getConnectionWithRetry(final int reconnectAttempts) {
+   private void getConnectionWithRetryBlocking(final int reconnectAttempts) {
+      getConnectionWithRetry(reconnectAttempts, true, null, () -> {});
+   }
+
+   private void getConnectionWithRetry(final int reconnectAttempts, final boolean blocking, final Semaphore semaphore, final Runnable onComplete) {
       if (!clientProtocolManager.isAlive())
          return;
       if (logger.isTraceEnabled()) {
@@ -785,21 +796,27 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
       }
 
       //first attempt of rery connection is executed without timeout, so it is not scheduled
-      new OrderedRetryConnection( 0, retryInterval).run();
+      new OrderedRetryConnection( 0, retryInterval, blocking, semaphore, onComplete).run();
    }
 
    private class ScheduledRetryConnection implements Runnable {
       private int count;
       private long interval;
+      private final Semaphore semaphore;
+      private final Runnable onComplete;
+      private final boolean blocking;
 
-      public ScheduledRetryConnection(int count, long interval) {
+      public ScheduledRetryConnection(int count, long interval, boolean blocking, Semaphore semaphore, Runnable onComplete) {
          this.count = count;
          this.interval = interval;
+         this.semaphore = semaphore;
+         this.onComplete = onComplete;
+         this.blocking = blocking;
       }
 
       @Override
       public void run() {
-         orderedExecutorFactory.getExecutor().execute(new OrderedRetryConnection(count, interval));
+         orderedExecutorFactory.getExecutor().execute(new OrderedRetryConnection(count, interval, blocking, semaphore, onComplete));
       }
    }
 
@@ -811,65 +828,84 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
    private class OrderedRetryConnection implements Runnable {
       private int count;
       private long interval;
+      private final Semaphore semaphore;
+      private final Runnable onComplete;
+      private final boolean blocking;
 
-      public OrderedRetryConnection(int count, long interval) {
+      public OrderedRetryConnection(int count, long interval, boolean blocking, Semaphore semaphore, Runnable onComplete) {
          this.count = count;
          this.interval = interval;
+         this.semaphore = semaphore;
+         this.onComplete = onComplete;
+         this.blocking = blocking;
       }
 
       @Override
       public void run() {
 
-         if (clientProtocolManager.isAlive()) {
-            if (logger.isDebugEnabled()) {
-               logger.debug("Trying reconnection attempt " + count + "/" + reconnectAttempts);
-            }
-
-            if (getConnection() != null) {
+         boolean runOnComplete = true;
+         try {
+            if (clientProtocolManager.isAlive()) {
                if (logger.isDebugEnabled()) {
-                  logger.debug("Reconnection successful");
+                  logger.debug("Trying reconnection attempt " + count + "/" + reconnectAttempts);
                }
-               return;
-            } else {
-               // Failed to get connection
-               if (reconnectAttempts != 0) {
-                  count++;
-                  if (reconnectAttempts != -1 && count == reconnectAttempts) {
-                     if (reconnectAttempts != 1) {
-                        ActiveMQClientLogger.LOGGER.failedToConnectToServer(reconnectAttempts);
-                     }
-                     return;
-                  }
 
-                  try {
-                     //wait interval is changed to 1, real waiting is achieved by scheduling thread with interval "interval"
-                     if (clientProtocolManager.waitOnLatch(1)) {
+               if (getConnection() != null) {
+                  if (logger.isDebugEnabled()) {
+                     logger.debug("Reconnection successful");
+                  }
+                  return;
+               } else {
+                  // Failed to get connection
+                  if (reconnectAttempts != 0) {
+                     count++;
+                     if (reconnectAttempts != -1 && count == reconnectAttempts) {
+                        if (reconnectAttempts != 1) {
+                           ActiveMQClientLogger.LOGGER.failedToConnectToServer(reconnectAttempts);
+                        }
                         return;
                      }
-                  } catch (InterruptedException ignore) {
-                     throw new ActiveMQInterruptedException(createTrace);
+
+                     try {
+                        //wait interval is changed to 1, real waiting is achieved by scheduling thread with interval "interval"
+                        if (clientProtocolManager.waitOnLatch(blocking ? interval : 1)) {
+                           return;
+                        }
+                     } catch (InterruptedException ignore) {
+                        throw new ActiveMQInterruptedException(createTrace);
+                     }
+
+                     runOnComplete = false;
+
+                     // Exponential back-off
+                     long newInterval = (long) (interval * retryIntervalMultiplier);
+
+                     if (newInterval > maxRetryInterval) {
+                        newInterval = maxRetryInterval;
+                     }
+
+                     interval = newInterval;
+
+                     if (ClientSessionFactoryImpl.logger.isTraceEnabled()) {
+                        ClientSessionFactoryImpl.logger.trace("Waiting " + interval + " milliseconds before next retry. RetryInterval=" + retryInterval + " and multiplier=" + retryIntervalMultiplier);
+                     }
+
+                     if(blocking) {
+                        new OrderedRetryConnection(count, interval, false, semaphore, onComplete).run();
+                     } else {
+                        ScheduledRetryConnection command = new ScheduledRetryConnection(count, interval, false, semaphore, onComplete);
+                        //schedule next check
+                        scheduledThreadPool.schedule(command, interval, TimeUnit.MILLISECONDS);
+                     }
+                  } else {
+                     logger.debug("Could not connect to any server. Didn't have reconnection configured on the ClientSessionFactory");
+                     return;
                   }
-
-                  // Exponential back-off
-                  long newInterval = (long) (interval * retryIntervalMultiplier);
-
-                  if (newInterval > maxRetryInterval) {
-                     newInterval = maxRetryInterval;
-                  }
-
-                  interval = newInterval;
-
-                  if (ClientSessionFactoryImpl.logger.isTraceEnabled()) {
-                     ClientSessionFactoryImpl.logger.trace("Waiting " + interval + " milliseconds before next retry. RetryInterval=" + retryInterval + " and multiplier=" + retryIntervalMultiplier);
-                  }
-
-                  ScheduledRetryConnection command = new ScheduledRetryConnection(count, interval);
-                  //schedule next check
-                  scheduledThreadPool.schedule(command, interval, TimeUnit.MILLISECONDS);
-               } else {
-                  logger.debug("Could not connect to any server. Didn't have reconnection configured on the ClientSessionFactory");
-                  return;
                }
+            }
+         } finally {
+            if(onComplete != null && runOnComplete) {
+               onComplete.run();
             }
          }
       }
