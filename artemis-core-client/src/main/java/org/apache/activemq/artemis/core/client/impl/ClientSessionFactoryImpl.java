@@ -629,48 +629,58 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
                cancelScheduledTasks();
 
                connector = null;
-               Semaphore semaphore = acquireFailoverSemaphore();
+               reconnectSessions(oldConnection, reconnectAttempts, me, null, () -> {});
 
-               reconnectSessions(oldConnection, reconnectAttempts, me, semaphore, () -> {
+               if (oldConnection != null) {
+                  oldConnection.destroy();
+               }
 
-                  if (oldConnection != null) {
-                     oldConnection.destroy();
-                  }
-
-                  if (connection != null) {
-                     callFailoverListeners(FailoverEventType.FAILOVER_COMPLETED);
-                  }
-
-                  if (connection == null) {
-                     synchronized (sessions) {
-                        sessionsToClose.addAll(sessions);
-                     }
-                     callFailoverListeners(FailoverEventType.FAILOVER_FAILED);
-                     callSessionFailureListeners(me, true, false, scaleDownTargetNodeID);
-                  }
-                  //localFailoverLock.unlock();
-                  semaphore.release();
-
-                  // This needs to be outside the failover lock to prevent deadlock
-                  if (connection != null) {
-                     callSessionFailureListeners(me, true, true);
-                  }
-                  if (sessionsToClose != null) {
-                     // If connection is null it means we didn't succeed in failing over or reconnecting
-                     // so we close all the sessions, so they will throw exceptions when attempted to be used
-
-                     for (ClientSessionInternal session : sessionsToClose) {
-                        try {
-                           session.cleanUp(true);
-                        } catch (Exception cause) {
-                           ActiveMQClientLogger.LOGGER.failedToCleanupSession(cause);
-                        }
-                     }
-                  }
-               });
-
-               return;
+               if (connection != null) {
+                  callFailoverListeners(FailoverEventType.FAILOVER_COMPLETED);
+               }
             }
+//               Semaphore semaphore = acquireFailoverSemaphore();
+//
+//               reconnectSessions(oldConnection, reconnectAttempts, me, semaphore, () -> {
+//
+//                  if (oldConnection != null) {
+//                     oldConnection.destroy();
+//                  }
+//
+//                  if (connection != null) {
+//                     callFailoverListeners(FailoverEventType.FAILOVER_COMPLETED);
+//                  }
+//
+//                  if (connection == null) {
+//                     synchronized (sessions) {
+//                        sessionsToClose.addAll(sessions);
+//                     }
+//                     callFailoverListeners(FailoverEventType.FAILOVER_FAILED);
+//                     callSessionFailureListeners(me, true, false, scaleDownTargetNodeID);
+//                  }
+//                  //localFailoverLock.unlock();
+//                  semaphore.release();
+//
+//                  // This needs to be outside the failover lock to prevent deadlock
+//                  if (connection != null) {
+//                     callSessionFailureListeners(me, true, true);
+//                  }
+//                  if (sessionsToClose != null) {
+//                     // If connection is null it means we didn't succeed in failing over or reconnecting
+//                     // so we close all the sessions, so they will throw exceptions when attempted to be used
+//
+//                     for (ClientSessionInternal session : sessionsToClose) {
+//                        try {
+//                           session.cleanUp(true);
+//                        } catch (Exception cause) {
+//                           ActiveMQClientLogger.LOGGER.failedToCleanupSession(cause);
+//                        }
+//                     }
+//                  }
+//               });
+//
+//               return;
+//            }
          } else {
             RemotingConnection connectionToDestory = connection;
             if (connectionToDestory != null) {
@@ -793,7 +803,7 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
          session.preHandleFailover(connection);
       }
 
-      getConnectionWithRetry(reconnectAttempts, false, semaphore, () -> {
+      getConnectionWithRetry(reconnectAttempts, true, semaphore, () -> {
          if (connection == null) {
             if (!clientProtocolManager.isAlive())
                ActiveMQClientLogger.LOGGER.failedToConnectToServer();
