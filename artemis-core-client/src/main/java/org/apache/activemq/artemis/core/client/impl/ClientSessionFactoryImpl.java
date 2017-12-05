@@ -21,7 +21,6 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -100,6 +99,7 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
    private final Object createSessionLock = new Object();
 
    private final Lock newFailoverLock = new ReentrantLock();
+   private final Semaphore failoverSemaphore = new Semaphore(1);
 
    private final Object connectionLock = new Object();
 
@@ -230,7 +230,23 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
    @Override
    public Lock lockFailover() {
       newFailoverLock.lock();
+      try {
+         failoverSemaphore.acquire();
+      } catch (InterruptedException e) {
+         e.printStackTrace();
+      }
+      failoverSemaphore.release();
       return newFailoverLock;
+   }
+
+   private Semaphore acquireFailoverSemaphore() {
+      newFailoverLock.lock();
+      try {
+         failoverSemaphore.acquire();
+      } catch (InterruptedException e) {
+         e.printStackTrace();
+      }
+      return failoverSemaphore;
    }
 
    @Override
@@ -536,10 +552,11 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
          }
       }
 
-      Set<ClientSessionInternal> sessionsToClose = null;
+      Set<ClientSessionInternal> sessionsToClose = new HashSet<>();
       if (!clientProtocolManager.isAlive())
          return;
       Lock localFailoverLock = lockFailover();
+      boolean ubnlock = true;
       try {
          if (connection == null || !connection.getID().equals(connectionID) || !clientProtocolManager.isAlive()) {
             // We already failed over/reconnected - probably the first failure came in, all the connections were failed
@@ -612,17 +629,47 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
                cancelScheduledTasks();
 
                connector = null;
+               Semaphore semaphore = acquireFailoverSemaphore();
 
-               //TODO
-               reconnectSessions(oldConnection, reconnectAttempts, me, () -> {});
+               reconnectSessions(oldConnection, reconnectAttempts, me, semaphore, () -> {
 
-               if (oldConnection != null) {
-                  oldConnection.destroy();
-               }
+                  if (oldConnection != null) {
+                     oldConnection.destroy();
+                  }
 
-               if (connection != null) {
-                  callFailoverListeners(FailoverEventType.FAILOVER_COMPLETED);
-               }
+                  if (connection != null) {
+                     callFailoverListeners(FailoverEventType.FAILOVER_COMPLETED);
+                  }
+
+                  if (connection == null) {
+                     synchronized (sessions) {
+                        sessionsToClose.addAll(sessions);
+                     }
+                     callFailoverListeners(FailoverEventType.FAILOVER_FAILED);
+                     callSessionFailureListeners(me, true, false, scaleDownTargetNodeID);
+                  }
+                  //localFailoverLock.unlock();
+                  semaphore.release();
+
+                  // This needs to be outside the failover lock to prevent deadlock
+                  if (connection != null) {
+                     callSessionFailureListeners(me, true, true);
+                  }
+                  if (sessionsToClose != null) {
+                     // If connection is null it means we didn't succeed in failing over or reconnecting
+                     // so we close all the sessions, so they will throw exceptions when attempted to be used
+
+                     for (ClientSessionInternal session : sessionsToClose) {
+                        try {
+                           session.cleanUp(true);
+                        } catch (Exception cause) {
+                           ActiveMQClientLogger.LOGGER.failedToCleanupSession(cause);
+                        }
+                     }
+                  }
+               });
+
+               return;
             }
          } else {
             RemotingConnection connectionToDestory = connection;
@@ -634,7 +681,7 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
 
          if (connection == null) {
             synchronized (sessions) {
-               sessionsToClose = new HashSet<>(sessions);
+               sessionsToClose.addAll(sessions);
             }
             callFailoverListeners(FailoverEventType.FAILOVER_FAILED);
             callSessionFailureListeners(me, true, false, scaleDownTargetNodeID);
@@ -735,6 +782,7 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
    private void reconnectSessions(final RemotingConnection oldConnection,
                                   final int reconnectAttempts,
                                   final ActiveMQException cause,
+                                  Semaphore semaphore,
                                   Runnable onComplete) {
       HashSet<ClientSessionInternal> sessionsToFailover;
       synchronized (sessions) {
@@ -745,7 +793,7 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
          session.preHandleFailover(connection);
       }
 
-      getConnectionWithRetry(reconnectAttempts, false, null, () -> {
+      getConnectionWithRetry(reconnectAttempts, false, semaphore, () -> {
          if (connection == null) {
             if (!clientProtocolManager.isAlive())
                ActiveMQClientLogger.LOGGER.failedToConnectToServer();
