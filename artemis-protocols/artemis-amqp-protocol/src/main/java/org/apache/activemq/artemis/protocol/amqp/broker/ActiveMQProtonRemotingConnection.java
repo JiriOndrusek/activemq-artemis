@@ -65,9 +65,9 @@ public class ActiveMQProtonRemotingConnection extends AbstractRemotingConnection
     * This can be called concurrently by more than one thread so needs to be locked
     */
    @Override
-   public void fail(final ActiveMQException me, String scaleDownTargetNodeID) {
+   public CountDownLatch fail(final ActiveMQException me, String scaleDownTargetNodeID) {
       if (destroyed) {
-         return;
+         return new CountDownLatch(0);
       }
 
       destroyed = true;
@@ -80,6 +80,9 @@ public class ActiveMQProtonRemotingConnection extends AbstractRemotingConnection
       callClosingListeners();
 
       internalClose();
+
+      //todo todo
+      return new CountDownLatch(0);
    }
 
    @Override

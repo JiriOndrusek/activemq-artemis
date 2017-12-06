@@ -138,17 +138,19 @@ public class MQTTConnection implements RemotingConnection {
    }
 
    @Override
-   public void fail(ActiveMQException me) {
+   public CountDownLatch fail(ActiveMQException me) {
       List<CountDownLatch> retVal = new LinkedList<>();
       synchronized (failureListeners) {
          for (FailureListener listener : failureListeners) {
             listener.connectionFailed(me, false);
          }
       }
+      //todo todo
+      return new CountDownLatch(0);
    }
 
    @Override
-   public void fail(ActiveMQException me, String scaleDownTargetNodeID) {
+   public CountDownLatch fail(ActiveMQException me, String scaleDownTargetNodeID) {
       List<CountDownLatch> retVal = new LinkedList<>();
       synchronized (failureListeners) {
          for (FailureListener listener : failureListeners) {
@@ -156,6 +158,8 @@ public class MQTTConnection implements RemotingConnection {
             retVal.add(listener.connectionFailed(me, false));
          }
       }
+      //todo todo
+      return new CountDownLatch(0);
    }
 
    @Override

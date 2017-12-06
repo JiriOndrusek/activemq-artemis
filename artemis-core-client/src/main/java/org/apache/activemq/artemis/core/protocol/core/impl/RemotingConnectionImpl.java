@@ -192,10 +192,10 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
    }
 
    @Override
-   public void fail(final ActiveMQException me, String scaleDownTargetNodeID) {
+   public CountDownLatch fail(final ActiveMQException me, String scaleDownTargetNodeID) {
       synchronized (failLock) {
          if (destroyed) {
-            return;
+            return new CountDownLatch(0);
          }
 
          destroyed = true;
@@ -220,7 +220,7 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
 
       new ScheduledInternalClose(failureLatches, me, latch).run();
 
-      return;
+      return latch;
    }
 
    private class ScheduledInternalClose implements Runnable {
@@ -249,6 +249,7 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
          });
 
          if (!running.isEmpty()) {
+            //todo todo
             scheduledExecutorService.schedule(new ScheduledInternalClose(running, me, latch), 500, TimeUnit.MILLISECONDS);
 
          } else {
