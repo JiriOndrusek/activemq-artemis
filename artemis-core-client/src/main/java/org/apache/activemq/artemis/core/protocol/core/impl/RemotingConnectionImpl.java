@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.activemq.artemis.api.core.ActiveMQBuffer;
@@ -91,7 +92,7 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
                                  final long blockingCallFailoverTimeout,
                                  final List<Interceptor> incomingInterceptors,
                                  final List<Interceptor> outgoingInterceptors) {
-      this(packetDecoder, transportConnection, blockingCallTimeout, blockingCallFailoverTimeout, incomingInterceptors, outgoingInterceptors, true, null, null);
+      this(packetDecoder, transportConnection, blockingCallTimeout, blockingCallFailoverTimeout, incomingInterceptors, outgoingInterceptors, true, null, null, null);
    }
 
    /*
@@ -102,8 +103,9 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
                           final List<Interceptor> incomingInterceptors,
                           final List<Interceptor> outgoingInterceptors,
                           final Executor executor,
+                          final ScheduledExecutorService scheduledExecutorService,
                           final SimpleString nodeID) {
-      this(packetDecoder, transportConnection, -1, -1, incomingInterceptors, outgoingInterceptors, false, executor, nodeID);
+      this(packetDecoder, transportConnection, -1, -1, incomingInterceptors, outgoingInterceptors, false, executor, scheduledExecutorService, nodeID);
    }
 
    private RemotingConnectionImpl(final PacketDecoder packetDecoder,
@@ -114,8 +116,9 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
                                   final List<Interceptor> outgoingInterceptors,
                                   final boolean client,
                                   final Executor executor,
+                                  final ScheduledExecutorService scheduledExecutorService,
                                   final SimpleString nodeID) {
-      super(transportConnection, executor);
+      super(transportConnection, executor, scheduledExecutorService);
 
       this.packetDecoder = packetDecoder;
 

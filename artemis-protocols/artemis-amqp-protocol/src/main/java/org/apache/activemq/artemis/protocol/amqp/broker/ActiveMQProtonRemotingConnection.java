@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
 
 import org.apache.activemq.artemis.api.core.ActiveMQBuffer;
 import org.apache.activemq.artemis.api.core.ActiveMQException;
@@ -45,8 +46,9 @@ public class ActiveMQProtonRemotingConnection extends AbstractRemotingConnection
    public ActiveMQProtonRemotingConnection(ProtonProtocolManager manager,
                                            AMQPConnectionContext amqpConnection,
                                            Connection transportConnection,
-                                           Executor executor) {
-      super(transportConnection, executor);
+                                           Executor executor,
+                                           ScheduledExecutorService scheduledExecutorService) {
+      super(transportConnection, executor, scheduledExecutorService);
       this.manager = manager;
       this.amqpConnection = amqpConnection;
    }

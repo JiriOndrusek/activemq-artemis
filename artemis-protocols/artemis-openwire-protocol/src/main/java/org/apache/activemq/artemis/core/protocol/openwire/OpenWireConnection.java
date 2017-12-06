@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -185,9 +186,10 @@ public class OpenWireConnection extends AbstractRemotingConnection implements Se
    public OpenWireConnection(Connection connection,
                              ActiveMQServer server,
                              Executor executor,
+                             ScheduledExecutorService scheduledExecutorService,
                              OpenWireProtocolManager openWireProtocolManager,
                              OpenWireFormat wf) {
-      super(connection, executor);
+      super(connection, executor, scheduledExecutorService);
       this.server = server;
       this.operationContext = server.newOperationContext();
       this.protocolManager = openWireProtocolManager;

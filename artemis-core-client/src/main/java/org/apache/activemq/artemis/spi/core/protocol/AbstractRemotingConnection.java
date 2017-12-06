@@ -43,13 +43,14 @@ public abstract class AbstractRemotingConnection implements RemotingConnection {
    protected final List<CloseListener> closeListeners = new CopyOnWriteArrayList<>();
    protected final Connection transportConnection;
    protected final Executor executor;
-// todo todo  protected final ScheduledExecutorService scheduledExecutorService;
+   protected final ScheduledExecutorService scheduledExecutorService;
    protected final long creationTime;
    protected volatile boolean dataReceived;
 
-   public AbstractRemotingConnection(final Connection transportConnection, final Executor executor) {
+   public AbstractRemotingConnection(final Connection transportConnection, final Executor executor, final ScheduledExecutorService scheduledExecutorService) {
       this.transportConnection = transportConnection;
       this.executor = executor;
+      this.scheduledExecutorService = scheduledExecutorService;
       this.creationTime = System.currentTimeMillis();
    }
 
