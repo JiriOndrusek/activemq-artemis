@@ -301,10 +301,10 @@ public final class StompConnection implements RemotingConnection {
    }
 
    @Override
-   public CountDownLatch fail(final ActiveMQException me) {
+   public void fail(final ActiveMQException me) {
       synchronized (failLock) {
          if (destroyed) {
-            return new CountDownLatch(0);
+            return;
          }
 
          StompFrame frame = frameHandler.createStompFrame(Stomp.Responses.ERROR);
@@ -327,15 +327,12 @@ public final class StompConnection implements RemotingConnection {
 
       internalClose();
 
-      //todo todo
-      return new CountDownLatch(0);
-
    }
 
    @Override
-   public CountDownLatch fail(final ActiveMQException me, String scaleDownTargetNodeID) {
+   public void fail(final ActiveMQException me, String scaleDownTargetNodeID) {
       fail(me);
-      return new CountDownLatch(0);
+      return;
    }
 
    @Override

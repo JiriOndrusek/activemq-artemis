@@ -192,10 +192,10 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
    }
 
    @Override
-   public CountDownLatch fail(final ActiveMQException me, String scaleDownTargetNodeID) {
+   public void fail(final ActiveMQException me, String scaleDownTargetNodeID) {
       synchronized (failLock) {
          if (destroyed) {
-            return new CountDownLatch(0);
+            return;
          }
 
          destroyed = true;
@@ -216,15 +216,11 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
 
       callClosingListeners();
 
-
       CountDownLatch latch = new CountDownLatch(1);
-
 
       new ScheduledInternalClose(failureLatches, me, latch).run();
 
-
-
-      return new CountDownLatch(0);
+      return;
    }
 
    private class ScheduledInternalClose implements Runnable {

@@ -591,7 +591,7 @@ public class OpenWireConnection extends AbstractRemotingConnection implements Se
    }
 
    @Override
-   public CountDownLatch fail(ActiveMQException me, String message) {
+   public void fail(ActiveMQException me, String message) {
 
       if (me != null) {
          ActiveMQServerLogger.LOGGER.connectionFailureDetected(me.getMessage(), me.getType());
@@ -602,8 +602,6 @@ public class OpenWireConnection extends AbstractRemotingConnection implements Se
          ActiveMQServerLogger.LOGGER.warn("Couldn't close connection because invalid clientID", e);
       }
       shutdown(true);
-
-      return new CountDownLatch(0);
    }
 
    public void setAdvisorySession(AMQSession amqSession) {

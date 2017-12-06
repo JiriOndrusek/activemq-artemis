@@ -126,7 +126,7 @@ public interface RemotingConnection extends BufferHandler {
     *
     * @param me the exception that caused the failure
     */
-   CountDownLatch fail(ActiveMQException me);
+   void fail(ActiveMQException me);
 
    /**
     * called when the underlying connection fails.
@@ -134,7 +134,7 @@ public interface RemotingConnection extends BufferHandler {
     * @param me                    the exception that caused the failure
     * @param scaleDownTargetNodeID the ID of the node where scale down is targeted
     */
-   CountDownLatch fail(ActiveMQException me, String scaleDownTargetNodeID);
+   void fail(ActiveMQException me, String scaleDownTargetNodeID);
 
    /**
     * destroys this connection.
