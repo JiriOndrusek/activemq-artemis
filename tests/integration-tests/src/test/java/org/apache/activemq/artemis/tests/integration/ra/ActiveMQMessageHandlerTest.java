@@ -314,12 +314,13 @@ public class ActiveMQMessageHandlerTest extends ActiveMQRATestBase {
       factoryListener.addFailureListener(new SessionFailureListener() {
 
          @Override
-         public void connectionFailed(ActiveMQException exception, boolean failedOver) {
+         public CountDownLatch connectionFailed(ActiveMQException exception, boolean failedOver) {
+            return new CountDownLatch(0);
          }
 
          @Override
-         public void connectionFailed(ActiveMQException exception, boolean failedOver, String scaleDownTargetNodeID) {
-            connectionFailed(exception, failedOver);
+         public CountDownLatch connectionFailed(ActiveMQException exception, boolean failedOver, String scaleDownTargetNodeID) {
+            return connectionFailed(exception, failedOver);
          }
 
          @Override
