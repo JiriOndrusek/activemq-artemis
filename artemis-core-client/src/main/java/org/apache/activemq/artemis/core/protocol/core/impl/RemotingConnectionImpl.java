@@ -16,11 +16,13 @@
  */
 package org.apache.activemq.artemis.core.protocol.core.impl;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
@@ -185,10 +187,10 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
    }
 
    @Override
-   public void fail(final ActiveMQException me, String scaleDownTargetNodeID) {
+   public CountDownLatch fail(final ActiveMQException me, String scaleDownTargetNodeID) {
       synchronized (failLock) {
          if (destroyed) {
-            return;
+            return new CountDownLatch(0);
          }
 
          destroyed = true;
@@ -205,15 +207,29 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
       }
 
       // Then call the listeners
-      callFailureListeners(me, scaleDownTargetNodeID);
+      List<CountDownLatch> failureLatches = callFailureListeners(me, scaleDownTargetNodeID);
+
 
       callClosingListeners();
 
+      failureLatches.forEach((l) -> {
+         try {
+            l.await();
+         } catch (InterruptedException e) {
+            e.printStackTrace();
+         }
+      });
+
+
+
       internalClose();
+
 
       for (Channel channel : channels.values()) {
          channel.returnBlocking(me);
       }
+
+      return new CountDownLatch(0);
    }
 
    @Override

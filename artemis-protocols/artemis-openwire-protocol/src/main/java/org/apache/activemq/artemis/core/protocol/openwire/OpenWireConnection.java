@@ -25,11 +25,13 @@ import javax.transaction.xa.XAResource;
 import javax.transaction.xa.Xid;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -587,7 +589,7 @@ public class OpenWireConnection extends AbstractRemotingConnection implements Se
    }
 
    @Override
-   public void fail(ActiveMQException me, String message) {
+   public CountDownLatch fail(ActiveMQException me, String message) {
 
       if (me != null) {
          ActiveMQServerLogger.LOGGER.connectionFailureDetected(me.getMessage(), me.getType());
@@ -598,6 +600,8 @@ public class OpenWireConnection extends AbstractRemotingConnection implements Se
          ActiveMQServerLogger.LOGGER.warn("Couldn't close connection because invalid clientID", e);
       }
       shutdown(true);
+
+      return new CountDownLatch(0);
    }
 
    public void setAdvisorySession(AMQSession amqSession) {
