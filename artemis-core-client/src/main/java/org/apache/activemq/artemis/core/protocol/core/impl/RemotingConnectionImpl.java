@@ -18,6 +18,7 @@ package org.apache.activemq.artemis.core.protocol.core.impl;
 
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -91,8 +92,9 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
                                  final long blockingCallTimeout,
                                  final long blockingCallFailoverTimeout,
                                  final List<Interceptor> incomingInterceptors,
-                                 final List<Interceptor> outgoingInterceptors) {
-      this(packetDecoder, transportConnection, blockingCallTimeout, blockingCallFailoverTimeout, incomingInterceptors, outgoingInterceptors, true, null, null, null);
+                                 final List<Interceptor> outgoingInterceptors,
+                                 final ScheduledExecutorService scheduledExecutorService) {
+      this(packetDecoder, transportConnection, blockingCallTimeout, blockingCallFailoverTimeout, incomingInterceptors, outgoingInterceptors, true, null, scheduledExecutorService, null);
    }
 
    /*
@@ -212,27 +214,58 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
       // Then call the listeners
       List<CountDownLatch> failureLatches = callFailureListeners(me, scaleDownTargetNodeID);
 
-
       callClosingListeners();
 
-      failureLatches.forEach((l) -> {
-         try {
-            l.await();
-         } catch (InterruptedException e) {
-            e.printStackTrace();
-         }
-      });
+
+      CountDownLatch latch = new CountDownLatch(1);
 
 
+      new ScheduledInternalClose(failureLatches, me, latch).run();
 
-      internalClose();
 
-
-      for (Channel channel : channels.values()) {
-         channel.returnBlocking(me);
-      }
 
       return new CountDownLatch(0);
+   }
+
+   private class ScheduledInternalClose implements Runnable {
+
+      private final List<CountDownLatch> failureLatches;
+      private final ActiveMQException me;
+      private final CountDownLatch latch;
+
+      public ScheduledInternalClose(List<CountDownLatch> failureLatches, final ActiveMQException me, CountDownLatch latch) {
+         this.failureLatches = failureLatches;
+         this.me = me;
+         this.latch = latch;
+      }
+
+      @Override
+      public void run() {
+         List<CountDownLatch> running = new LinkedList<>();
+         failureLatches.forEach((l) -> {
+            try {
+               if (!l.await(1, TimeUnit.MILLISECONDS)) {
+                  running.add(l);
+               }
+            } catch (InterruptedException e) {
+               e.printStackTrace();
+            }
+         });
+
+         if (!running.isEmpty()) {
+            scheduledExecutorService.schedule(new ScheduledInternalClose(running, me, latch), 500, TimeUnit.MILLISECONDS);
+
+         } else {
+            internalClose();
+
+
+            for (Channel channel : channels.values()) {
+               channel.returnBlocking(me);
+            }
+
+            latch.countDown();
+         }
+      }
    }
 
    @Override
