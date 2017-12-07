@@ -16,12 +16,16 @@
  */
 package org.apache.activemq.artemis.core.protocol.core.impl;
 
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.activemq.artemis.api.core.ActiveMQBuffer;
@@ -88,8 +92,9 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
                                  final long blockingCallTimeout,
                                  final long blockingCallFailoverTimeout,
                                  final List<Interceptor> incomingInterceptors,
-                                 final List<Interceptor> outgoingInterceptors) {
-      this(packetDecoder, transportConnection, blockingCallTimeout, blockingCallFailoverTimeout, incomingInterceptors, outgoingInterceptors, true, null, null);
+                                 final List<Interceptor> outgoingInterceptors,
+                                 final ScheduledExecutorService scheduledExecutorService) {
+      this(packetDecoder, transportConnection, blockingCallTimeout, blockingCallFailoverTimeout, incomingInterceptors, outgoingInterceptors, true, null, scheduledExecutorService, null);
    }
 
    /*
@@ -100,8 +105,9 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
                           final List<Interceptor> incomingInterceptors,
                           final List<Interceptor> outgoingInterceptors,
                           final Executor executor,
+                          final ScheduledExecutorService scheduledExecutorService,
                           final SimpleString nodeID) {
-      this(packetDecoder, transportConnection, -1, -1, incomingInterceptors, outgoingInterceptors, false, executor, nodeID);
+      this(packetDecoder, transportConnection, -1, -1, incomingInterceptors, outgoingInterceptors, false, executor, scheduledExecutorService, nodeID);
    }
 
    private RemotingConnectionImpl(final PacketDecoder packetDecoder,
@@ -112,8 +118,9 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
                                   final List<Interceptor> outgoingInterceptors,
                                   final boolean client,
                                   final Executor executor,
+                                  final ScheduledExecutorService scheduledExecutorService,
                                   final SimpleString nodeID) {
-      super(transportConnection, executor);
+      super(transportConnection, executor, scheduledExecutorService);
 
       this.packetDecoder = packetDecoder;
 
@@ -185,10 +192,10 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
    }
 
    @Override
-   public void fail(final ActiveMQException me, String scaleDownTargetNodeID) {
+   public CountDownLatch fail(final ActiveMQException me, String scaleDownTargetNodeID) {
       synchronized (failLock) {
          if (destroyed) {
-            return;
+            return new CountDownLatch(0);
          }
 
          destroyed = true;
@@ -205,14 +212,56 @@ public class RemotingConnectionImpl extends AbstractRemotingConnection implement
       }
 
       // Then call the listeners
-      callFailureListeners(me, scaleDownTargetNodeID);
+      List<CountDownLatch> failureLatches = callFailureListeners(me, scaleDownTargetNodeID);
 
       callClosingListeners();
 
-      internalClose();
+      CountDownLatch latch = new CountDownLatch(1);
 
-      for (Channel channel : channels.values()) {
-         channel.returnBlocking(me);
+      new ScheduledInternalClose(failureLatches, me, latch).run();
+
+      return latch;
+   }
+
+   private class ScheduledInternalClose implements Runnable {
+
+      private final List<CountDownLatch> failureLatches;
+      private final ActiveMQException me;
+      private final CountDownLatch latch;
+
+      public ScheduledInternalClose(List<CountDownLatch> failureLatches, final ActiveMQException me, CountDownLatch latch) {
+         this.failureLatches = failureLatches;
+         this.me = me;
+         this.latch = latch;
+      }
+
+      @Override
+      public void run() {
+         List<CountDownLatch> running = new LinkedList<>();
+         failureLatches.forEach((l) -> {
+            try {
+               if (!l.await(1, TimeUnit.MILLISECONDS)) {
+                  running.add(l);
+               }
+            } catch (InterruptedException e) {
+               e.printStackTrace();
+            }
+         });
+
+         if (!running.isEmpty()) {
+            //todo todo
+            scheduledExecutorService.schedule(new ScheduledInternalClose(running, me, latch), 500, TimeUnit.MILLISECONDS);
+
+         } else {
+            internalClose();
+
+
+            for (Channel channel : channels.values()) {
+               channel.returnBlocking(me);
+            }
+
+            latch.countDown();
+         }
       }
    }
 

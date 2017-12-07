@@ -345,12 +345,14 @@ public class FailoverTest extends FailoverTestBase {
          }
 
          @Override
-         public void connectionFailed(ActiveMQException exception, boolean failedOver) {
+         public CountDownLatch connectionFailed(ActiveMQException exception, boolean failedOver) {
+            return new CountDownLatch(0);
          }
 
          @Override
-         public void connectionFailed(ActiveMQException exception, boolean failedOver, String scaleDownTargetNodeID) {
+         public CountDownLatch connectionFailed(ActiveMQException exception, boolean failedOver, String scaleDownTargetNodeID) {
             connectionFailed.countDown();
+            return new CountDownLatch(0);
          }
       });
 
@@ -412,12 +414,14 @@ public class FailoverTest extends FailoverTestBase {
          }
 
          @Override
-         public void connectionFailed(ActiveMQException exception, boolean failedOver) {
+         public CountDownLatch connectionFailed(ActiveMQException exception, boolean failedOver) {
+            return new CountDownLatch(0);
          }
 
          @Override
-         public void connectionFailed(ActiveMQException exception, boolean failedOver, String scaleDownTargetNodeID) {
+         public CountDownLatch connectionFailed(ActiveMQException exception, boolean failedOver, String scaleDownTargetNodeID) {
             connectionFailed.countDown();
+            return new CountDownLatch(0);
          }
       });
 
@@ -871,9 +875,18 @@ public class FailoverTest extends FailoverTestBase {
 
       sf = createSessionFactoryAndWaitForTopology(locator, 2);
 
+      System.out.println("***************************************************************************************** crash start ***************************");
       // Crash live server
       crash();
 
+      try {
+         Thread.sleep(5000);
+      } catch (InterruptedException e) {
+         e.printStackTrace();
+      }
+
+
+      System.out.println("***************************************************************************************** crash end ***************************");
       ClientSession session = createSession(sf);
 
       session.createQueue(FailoverTestBase.ADDRESS, FailoverTestBase.ADDRESS, null, true);
