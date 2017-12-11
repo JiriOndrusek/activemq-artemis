@@ -791,7 +791,7 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
    private void reconnectSessions(final RemotingConnection oldConnection,
                                   final int reconnectAttempts,
                                   final ActiveMQException cause,
-                                  CountDownLatch semaphore,
+                                  CountDownLatch latch,
                                   Runnable onComplete) {
       HashSet<ClientSessionInternal> sessionsToFailover;
       synchronized (sessions) {
@@ -802,7 +802,7 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
          session.preHandleFailover(connection);
       }
 
-      getConnectionWithRetry(reconnectAttempts, false, semaphore, () -> {
+      getConnectionWithRetry(reconnectAttempts, latch, () -> {
          if (connection == null) {
             if (!clientProtocolManager.isAlive())
                ActiveMQClientLogger.LOGGER.failedToConnectToServer();
@@ -838,10 +838,17 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
    }
 
    private void getConnectionWithRetryBlocking(final int reconnectAttempts) {
-      getConnectionWithRetry(reconnectAttempts, true, null, () -> {});
+      CountDownLatch latch = new CountDownLatch(1);
+      getConnectionWithRetry(reconnectAttempts, latch, () -> {});
+
+      try {
+         latch.await();
+      } catch (InterruptedException e) {
+         e.printStackTrace();
+      }
    }
 
-   private void getConnectionWithRetry(final int reconnectAttempts, final boolean blocking, final CountDownLatch semaphore, final Runnable onComplete) {
+   private void getConnectionWithRetry(final int reconnectAttempts, final CountDownLatch semaphore, final Runnable onComplete) {
       if (!clientProtocolManager.isAlive())
          return;
       if (logger.isTraceEnabled()) {
@@ -853,27 +860,33 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
       }
 
       //first attempt of rery connection is executed without timeout, so it is not scheduled
-      new OrderedRetryConnection( 0, retryInterval, blocking, semaphore, onComplete).run();
+      new OrderedRetryConnection( 0, retryInterval, semaphore, onComplete, reconnectAttempts, maxRetryInterval, retryIntervalMultiplier, retryInterval).run();
    }
 
    private class ScheduledRetryConnection implements Runnable {
       private int count;
       private long interval;
-      private final CountDownLatch semaphore;
+      private final CountDownLatch latch;
       private final Runnable onComplete;
-      private final boolean blocking;
+      private final int reconnectAttempts;
+      private final long maxRetryInterval;
+      private final double retryIntervalMultiplier;
+      private final long retryInterval;
 
-      public ScheduledRetryConnection(int count, long interval, boolean blocking, CountDownLatch semaphore, Runnable onComplete) {
+      public ScheduledRetryConnection(int count, long interval, CountDownLatch latch, Runnable onComplete, int reconnectAttempts, long maxRetryInterval, double retryIntervalMultiplier, long retryInterval) {
          this.count = count;
          this.interval = interval;
-         this.semaphore = semaphore;
+         this.latch = latch;
          this.onComplete = onComplete;
-         this.blocking = blocking;
+         this.reconnectAttempts = reconnectAttempts;
+         this.maxRetryInterval = maxRetryInterval;
+         this.retryIntervalMultiplier = retryIntervalMultiplier;
+         this.retryInterval = retryInterval;
       }
 
       @Override
       public void run() {
-         orderedExecutorFactory.getExecutor().execute(new OrderedRetryConnection(count, interval, blocking, semaphore, onComplete));
+         orderedExecutorFactory.getExecutor().execute(new OrderedRetryConnection(count, interval, latch, onComplete, reconnectAttempts, maxRetryInterval, retryIntervalMultiplier, retryInterval));
       }
    }
 
@@ -885,16 +898,22 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
    private class OrderedRetryConnection implements Runnable {
       private int count;
       private long interval;
-      private final CountDownLatch semaphore;
+      private final CountDownLatch latch;
       private final Runnable onComplete;
-      private final boolean blocking;
+      private final int reconnectAttempts;
+      private final long maxRetryInterval;
+      private final double retryIntervalMultiplier;
+      private final long retryInterval;
 
-      public OrderedRetryConnection(int count, long interval, boolean blocking, CountDownLatch semaphore, Runnable onComplete) {
+      public OrderedRetryConnection(int count, long interval, CountDownLatch latch, Runnable onComplete, int reconnectAttempts, long maxRetryInterval, double retryIntervalMultiplier, long retryInterval) {
          this.count = count;
          this.interval = interval;
-         this.semaphore = semaphore;
+         this.latch = latch;
          this.onComplete = onComplete;
-         this.blocking = blocking;
+         this.reconnectAttempts = reconnectAttempts;
+         this.maxRetryInterval = maxRetryInterval;
+         this.retryIntervalMultiplier = retryIntervalMultiplier;
+         this.retryInterval = retryInterval;
       }
 
       @Override
@@ -925,7 +944,7 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
 
                      try {
                         //wait interval is changed to 1, real waiting is achieved by scheduling thread with interval "interval"
-                        if (clientProtocolManager.waitOnLatch(blocking ? interval : 1)) {
+                        if (clientProtocolManager.waitOnLatch(1)) {
                            return;
                         }
                      } catch (InterruptedException ignore) {
@@ -947,13 +966,9 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
                         ClientSessionFactoryImpl.logger.trace("Waiting " + interval + " milliseconds before next retry. RetryInterval=" + retryInterval + " and multiplier=" + retryIntervalMultiplier);
                      }
 
-                     if(blocking) {
-                        new OrderedRetryConnection(count, interval, false, semaphore, onComplete).run();
-                     } else {
-                        ScheduledRetryConnection command = new ScheduledRetryConnection(count, interval, false, semaphore, onComplete);
-                        //schedule next check
-                        scheduledThreadPool.schedule(command, interval, TimeUnit.MILLISECONDS);
-                     }
+                     ScheduledRetryConnection command = new ScheduledRetryConnection(count, interval, latch, onComplete, reconnectAttempts, maxRetryInterval, retryIntervalMultiplier, retryInterval);
+                     //schedule next check
+                     scheduledThreadPool.schedule(command, interval, TimeUnit.MILLISECONDS);
                   } else {
                      logger.debug("Could not connect to any server. Didn't have reconnection configured on the ClientSessionFactory");
                      return;
@@ -964,8 +979,8 @@ public class ClientSessionFactoryImpl implements ClientSessionFactoryInternal, C
             if(onComplete != null && runOnComplete) {
                onComplete.run();
             }
-            if(runOnComplete && semaphore != null) {
-               semaphore.countDown();
+            if(runOnComplete && latch != null) {
+               latch.countDown();
             }
          }
       }
