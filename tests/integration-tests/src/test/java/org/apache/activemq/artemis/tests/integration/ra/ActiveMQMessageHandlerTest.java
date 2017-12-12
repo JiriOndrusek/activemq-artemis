@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.api.core.client.ActiveMQClient;
 import org.apache.activemq.artemis.api.core.client.ClientMessage;
 import org.apache.activemq.artemis.api.core.client.ClientProducer;
 import org.apache.activemq.artemis.api.core.client.ClientSession;
@@ -295,6 +296,16 @@ public class ActiveMQMessageHandlerTest extends ActiveMQRATestBase {
       ActiveMQResourceAdapter qResourceAdapter = new ActiveMQResourceAdapter();
       qResourceAdapter.setConnectorClassName(INVM_CONNECTOR_FACTORY);
       return qResourceAdapter;
+   }
+
+   @Test
+   public void testServerShutdownAndReconnectWithLimitedThreadPool() throws Exception {
+      //this test verifies that shutdown is able to finish with limited thread pool size - ARTEMIS-1527
+      //without deadlock
+      ActiveMQClient.clearThreadPools();
+      ActiveMQClient.setGlobalThreadPoolProperties(2, 1);
+
+      testServerShutdownAndReconnect();
    }
 
    @Test
