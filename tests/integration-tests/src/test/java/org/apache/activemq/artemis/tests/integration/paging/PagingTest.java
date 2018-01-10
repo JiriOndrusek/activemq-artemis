@@ -152,7 +152,7 @@ public class PagingTest extends ActiveMQTestBase {
       locator = createInVMNonHALocator();
    }
 
-   @Test
+   //@Test
    public void testTooLongPageStoreTableNamePrefix() throws Exception {
       if (storeType == StoreConfiguration.StoreType.DATABASE) {
          final Configuration config = createDefaultInVMConfig();
@@ -174,7 +174,7 @@ public class PagingTest extends ActiveMQTestBase {
       }
    }
 
-   @Test
+   //@Test
    public void testPageOnLargeMessageMultipleQueues() throws Exception {
       Configuration config = createDefaultInVMConfig();
 
@@ -263,7 +263,7 @@ public class PagingTest extends ActiveMQTestBase {
       }
    }
 
-   @Test
+   //@Test
    public void testPageCleanup() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -383,7 +383,7 @@ public class PagingTest extends ActiveMQTestBase {
    }
 
    // First page is complete but it wasn't deleted
-   @Test
+   //@Test
    public void testFirstPageCompleteNotDeleted() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -488,7 +488,7 @@ public class PagingTest extends ActiveMQTestBase {
 
    }
 
-   @Test
+   //@Test
    public void testPreparedACKAndRestart() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -681,7 +681,7 @@ public class PagingTest extends ActiveMQTestBase {
       assertTrue(queue.getPageSubscription().getPagingStore().isPaging());
    }
 
-   @Test
+   //@Test
    public void testMoveExpire() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -796,7 +796,7 @@ public class PagingTest extends ActiveMQTestBase {
       server.stop();
    }
 
-   @Test
+   //@Test
    public void testDeleteQueueRestart() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -948,7 +948,7 @@ public class PagingTest extends ActiveMQTestBase {
       server.stop();
    }
 
-   @Test
+   //@Test
    public void testPreparePersistent() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -1127,7 +1127,7 @@ public class PagingTest extends ActiveMQTestBase {
       waitForNotPaging(queue);
    }
 
-   @Test
+   //@Test
    public void testSendOverBlockingNoFlowControl() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -1197,7 +1197,7 @@ public class PagingTest extends ActiveMQTestBase {
 
    }
 
-   @Test
+   //@Test
    public void testReceiveImmediate() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -1305,7 +1305,7 @@ public class PagingTest extends ActiveMQTestBase {
    /**
     * This test will remove all the page directories during a restart, simulating a crash scenario. The server should still start after this
     */
-   @Test
+   //@Test
    public void testDeletePhysicalPages() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -1487,7 +1487,7 @@ public class PagingTest extends ActiveMQTestBase {
 
    }
 
-   @Test
+   //@Test
    public void testMissingTXEverythingAcked() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -1603,7 +1603,7 @@ public class PagingTest extends ActiveMQTestBase {
       sess.close();
    }
 
-   @Test
+   //@Test
    public void testMissingTXEverythingAcked2() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -1729,7 +1729,7 @@ public class PagingTest extends ActiveMQTestBase {
       }
    }
 
-   @Test
+   //@Test
    public void testTwoQueuesOneNoRouting() throws Exception {
       boolean persistentMessages = true;
 
@@ -1808,22 +1808,22 @@ public class PagingTest extends ActiveMQTestBase {
       assertFalse(server.getPagingManager().getPageStore(ADDRESS).isPaging());
    }
 
-   @Test
+   //@Test
    public void testSendReceivePagingPersistent() throws Exception {
       internaltestSendReceivePaging(true);
    }
 
-   @Test
+   //@Test
    public void testSendReceivePagingNonPersistent() throws Exception {
       internaltestSendReceivePaging(false);
    }
 
-   @Test
+   //@Test
    public void testWithDiverts() throws Exception {
       internalMultiQueuesTest(true);
    }
 
-   @Test
+   //@Test
    public void testWithMultiQueues() throws Exception {
       internalMultiQueuesTest(false);
    }
@@ -2058,7 +2058,7 @@ public class PagingTest extends ActiveMQTestBase {
 
    }
 
-   @Test
+   //@Test
    public void testMultiQueuesNonPersistentAndPersistent() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -2308,7 +2308,7 @@ public class PagingTest extends ActiveMQTestBase {
     * - Add stuff to a transaction again
     * - Check order
     */
-   @Test
+   //@Test
    public void testDepageDuringTransaction() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -2417,7 +2417,7 @@ public class PagingTest extends ActiveMQTestBase {
     * <br>
     * Test under discussion at : http://community.jboss.org/thread/154061?tstart=0
     */
-   @Test
+   //@Test
    public void testDepageDuringTransaction2() throws Exception {
       boolean IS_DURABLE_MESSAGE = true;
       clearDataRecreateServerDirs();
@@ -2530,7 +2530,7 @@ public class PagingTest extends ActiveMQTestBase {
 
    }
 
-   @Test
+   //@Test
    public void testDepageDuringTransaction3() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -2621,7 +2621,7 @@ public class PagingTest extends ActiveMQTestBase {
       sessionNonTX.close();
    }
 
-   @Test
+   //@Test
    public void testDepageDuringTransaction4() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -2709,7 +2709,7 @@ public class PagingTest extends ActiveMQTestBase {
       assertEquals(0, errors.get());
    }
 
-   @Test
+   //@Test
    public void testOrderingNonTX() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -2806,12 +2806,12 @@ public class PagingTest extends ActiveMQTestBase {
       assertEquals(0, errors.get());
    }
 
-   @Test
+   //@Test
    public void testPageOnSchedulingNoRestart() throws Exception {
       internalTestPageOnScheduling(false);
    }
 
-   @Test
+   //@Test
    public void testPageOnSchedulingRestart() throws Exception {
       internalTestPageOnScheduling(true);
    }
@@ -2910,7 +2910,7 @@ public class PagingTest extends ActiveMQTestBase {
       session.close();
    }
 
-   @Test
+   //@Test
    public void testRollbackOnSend() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -2960,7 +2960,7 @@ public class PagingTest extends ActiveMQTestBase {
       session.close();
    }
 
-   @Test
+   //@Test
    public void testRollbackOnSendThenSendMore() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -3044,7 +3044,7 @@ public class PagingTest extends ActiveMQTestBase {
    }
 
    // The pages are complete, and this is simulating a scenario where the server crashed before deleting the pages.
-   @Test
+   //@Test
    public void testRestartWithComplete() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -3197,7 +3197,7 @@ public class PagingTest extends ActiveMQTestBase {
 
    }
 
-   @Test
+   //@Test
    public void testCommitOnSend() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -3270,7 +3270,7 @@ public class PagingTest extends ActiveMQTestBase {
       session.close();
    }
 
-   @Test
+   //@Test
    public void testParialConsume() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -3365,22 +3365,22 @@ public class PagingTest extends ActiveMQTestBase {
       session.close();
    }
 
-   @Test
+   //@Test
    public void testPageMultipleDestinations() throws Exception {
       internalTestPageMultipleDestinations(false);
    }
 
-   @Test
+   //@Test
    public void testPageMultipleDestinationsTransacted() throws Exception {
       internalTestPageMultipleDestinations(true);
    }
 
-   @Test
+   //@Test
    public void testDropMessagesPersistent() throws Exception {
       testDropMessages(true);
    }
 
-   @Test
+   //@Test
    public void testDropMessagesNonPersistent() throws Exception {
       testDropMessages(false);
    }
@@ -3494,7 +3494,7 @@ public class PagingTest extends ActiveMQTestBase {
       Assert.assertEquals(0, server.getPagingManager().getPageStore(PagingTest.ADDRESS).getAddressSize());
    }
 
-   @Test
+   //@Test
    public void testDropMessagesExpiring() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -3649,7 +3649,7 @@ public class PagingTest extends ActiveMQTestBase {
       }
    }
 
-   @Test
+   //@Test
    public void testSyncPage() throws Exception {
       Configuration config = createDefaultInVMConfig();
 
@@ -3691,7 +3691,7 @@ public class PagingTest extends ActiveMQTestBase {
 
    }
 
-   @Test
+   //@Test
    public void testSyncPageTX() throws Exception {
       Configuration config = createDefaultInVMConfig();
 
@@ -3717,7 +3717,7 @@ public class PagingTest extends ActiveMQTestBase {
       assertTrue(pageDone.await(10, TimeUnit.SECONDS));
    }
 
-   @Test
+   //@Test
    public void testPagingOneDestinationOnly() throws Exception {
       SimpleString PAGED_ADDRESS = new SimpleString("paged");
       SimpleString NON_PAGED_ADDRESS = new SimpleString("non-paged");
@@ -3801,7 +3801,7 @@ public class PagingTest extends ActiveMQTestBase {
       session.close();
    }
 
-   @Test
+   //@Test
    public void testPagingDifferentSizes() throws Exception {
       SimpleString PAGED_ADDRESS_A = new SimpleString("paged-a");
       SimpleString PAGED_ADDRESS_B = new SimpleString("paged-b");
@@ -3911,7 +3911,7 @@ public class PagingTest extends ActiveMQTestBase {
       session.close();
    }
 
-   @Test
+   //@Test
    public void testPageAndDepageRapidly() throws Exception {
       boolean persistentMessages = true;
 
@@ -4010,7 +4010,7 @@ public class PagingTest extends ActiveMQTestBase {
       assertEquals(1, server.getPagingManager().getPageStore(ADDRESS).getNumberOfPages());
    }
 
-   @Test
+   //@Test
    public void testTwoQueuesDifferentFilters() throws Exception {
       boolean persistentMessages = true;
 
@@ -4092,7 +4092,7 @@ public class PagingTest extends ActiveMQTestBase {
       assertFalse(server.getPagingManager().getPageStore(ADDRESS).isPaging());
    }
 
-   @Test
+   //@Test
    public void testTwoQueues() throws Exception {
       boolean persistentMessages = true;
 
@@ -4186,7 +4186,7 @@ public class PagingTest extends ActiveMQTestBase {
       }
    }
 
-   @Test
+   //@Test
    public void testTwoQueuesAndOneInativeQueue() throws Exception {
       boolean persistentMessages = true;
 
@@ -4261,7 +4261,7 @@ public class PagingTest extends ActiveMQTestBase {
       }
    }
 
-   @Test
+   //@Test
    public void testTwoQueuesConsumeOneRestart() throws Exception {
       boolean persistentMessages = true;
 
@@ -4363,7 +4363,7 @@ public class PagingTest extends ActiveMQTestBase {
       }
    }
 
-   @Test
+   //@Test
    public void testDLAOnLargeMessageAndPaging() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -4706,7 +4706,7 @@ public class PagingTest extends ActiveMQTestBase {
       }
    }
 
-   @Test
+   //@Test
    /**
     * When running this test from an IDE add this to the test command line so that the AssertionLoggerHandler works properly:
     *
@@ -4795,7 +4795,7 @@ public class PagingTest extends ActiveMQTestBase {
       }
    }
 
-   @Test
+   //@Test
    public void testFailMessagesDurable() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -4867,7 +4867,7 @@ public class PagingTest extends ActiveMQTestBase {
       assertTrue("Expected to throw an exception", exception);
    }
 
-   @Test
+   //@Test
    public void testFailMessagesDuplicates() throws Exception {
       clearDataRecreateServerDirs();
 
@@ -4966,17 +4966,17 @@ public class PagingTest extends ActiveMQTestBase {
       assertEquals(ActiveMQExceptionType.ADDRESS_FULL, expected.getType());
    }
 
-   @Test
+   //@Test
    public void testSpreadMessagesWithFilterWithDeadConsumer() throws Exception {
       testSpreadMessagesWithFilter(true);
    }
 
-   @Test
+   //@Test
    public void testSpreadMessagesWithFilterWithoutDeadConsumer() throws Exception {
       testSpreadMessagesWithFilter(false);
    }
 
-   @Test
+   //@Test
    public void testRouteOnTopWithMultipleQueues() throws Exception {
 
       Configuration config = createDefaultInVMConfig().setJournalSyncNonTransactional(false);
@@ -5213,7 +5213,7 @@ public class PagingTest extends ActiveMQTestBase {
 
    // We send messages to pages, create a big hole (a few pages without any messages), ack everything
    // and expect it to move to the next page
-   @Test
+   //@Test
    public void testPageHole() throws Throwable {
       clearDataRecreateServerDirs();
 
@@ -5297,12 +5297,12 @@ public class PagingTest extends ActiveMQTestBase {
 
    }
 
-   @Test
+   //@Test
    public void testMultiFiltersBrowsing() throws Throwable {
       internalTestMultiFilters(true);
    }
 
-   @Test
+   //@Test
    public void testMultiFiltersRegularConsumer() throws Throwable {
       internalTestMultiFilters(false);
    }
@@ -5388,7 +5388,7 @@ public class PagingTest extends ActiveMQTestBase {
 
    }
 
-   @Test
+   //@Test
    public void testPendingACKOutOfOrder() throws Throwable {
       clearDataRecreateServerDirs();
 
@@ -5471,7 +5471,7 @@ public class PagingTest extends ActiveMQTestBase {
    }
 
    // Test a scenario where a page was complete and now needs to be cleared
-   @Test
+   //@Test
    public void testPageCompleteWasLive() throws Throwable {
       clearDataRecreateServerDirs();
 
@@ -5545,7 +5545,7 @@ public class PagingTest extends ActiveMQTestBase {
 
    }
 
-   @Test
+   //@Test
    public void testNoCursors() throws Exception {
       Configuration config = createDefaultInVMConfig().setJournalSyncNonTransactional(false);
 
@@ -5580,7 +5580,7 @@ public class PagingTest extends ActiveMQTestBase {
    }
 
    // Test a scenario where a page was complete and now needs to be cleared
-   @Test
+   //@Test
    public void testMoveMessages() throws Throwable {
       clearDataRecreateServerDirs();
 
