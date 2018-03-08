@@ -65,6 +65,8 @@ public class ClientProducerImpl implements ClientProducerInternal {
 
    private final ClientProducerCredits producerCredits;
 
+   private final boolean lockOnCreditShortage;
+
    // Static ---------------------------------------------------------------------------------------
 
    // Constructors ---------------------------------------------------------------------------------
@@ -77,7 +79,8 @@ public class ClientProducerImpl implements ClientProducerInternal {
                              final boolean autoGroup,
                              final SimpleString groupID,
                              final int minLargeMessageSize,
-                             final SessionContext sessionContext) {
+                             final SessionContext sessionContext,
+                             final boolean lockOnCreditShortage) {
       this.sessionContext = sessionContext;
 
       this.session = session;
@@ -89,6 +92,8 @@ public class ClientProducerImpl implements ClientProducerInternal {
       this.blockOnNonDurableSend = blockOnNonDurableSend;
 
       this.blockOnDurableSend = blockOnDurableSend;
+
+      this.lockOnCreditShortage = lockOnCreditShortage;
 
       if (autoGroup) {
          this.groupID = UUIDGenerator.getInstance().generateSimpleStringUUID();

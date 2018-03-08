@@ -986,6 +986,11 @@ public class MessageHeaderTest extends MessageHeaderTestBase {
       }
 
       @Override
+      public ClientProducer createProducer(final SimpleString addressboolean, boolean lockOnCreditShortage) throws ActiveMQException {
+         return null;
+      }
+
+      @Override
       public ClientProducer createProducer(final SimpleString address, final int rate) throws ActiveMQException {
          return null;
       }

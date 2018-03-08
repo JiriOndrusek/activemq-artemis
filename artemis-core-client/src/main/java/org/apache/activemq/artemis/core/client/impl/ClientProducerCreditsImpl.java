@@ -50,14 +50,19 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
 
    private SessionContext sessionContext;
 
+   private final boolean lockOnCreditShortage;
+
    public ClientProducerCreditsImpl(final ClientSessionInternal session,
                                     final SimpleString address,
-                                    final int windowSize) {
+                                    final int windowSize,
+                                    final boolean lockOnCreditShortage) {
       this.session = session;
 
       this.address = address;
 
       this.windowSize = windowSize / 2;
+
+      this.lockOnCreditShortage = lockOnCreditShortage;
 
       // Doesn't need to be fair since session is single threaded
 
@@ -81,6 +86,10 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
 
       boolean tryAcquire;
 
+      if(!lockOnCreditShortage) {
+         return;
+      }
+
       synchronized (this) {
          tryAcquire = semaphore.tryAcquire(credits);
       }
@@ -89,7 +98,7 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
          if (!closed) {
             this.blocked = true;
             try {
-               while (!semaphore.tryAcquire(credits, 10, TimeUnit.SECONDS)) {
+               while (!semaphore.tryAcquire(credits, 5, TimeUnit.SECONDS)) {
                   // I'm using string concatenation here in case address is null
                   // better getting a "null" string than a NPE
                   ActiveMQClientLogger.LOGGER.outOfCreditOnFlowControl("" + address);

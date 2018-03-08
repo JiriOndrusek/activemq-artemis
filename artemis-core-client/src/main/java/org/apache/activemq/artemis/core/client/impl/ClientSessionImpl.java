@@ -448,6 +448,10 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
    public ClientProducer createProducer(final SimpleString address) throws ActiveMQException {
       return createProducer(address, producerMaxRate);
    }
+   @Override
+   public ClientProducer createProducer(final SimpleString address, boolean lockOnCreditShortage) throws ActiveMQException {
+      return internalCreateProducer(address, producerMaxRate, lockOnCreditShortage);
+   }
 
    @Override
    public ClientProducer createProducer(final String address) throws ActiveMQException {
@@ -456,7 +460,7 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
 
    @Override
    public ClientProducer createProducer(final SimpleString address, final int maxRate) throws ActiveMQException {
-      return internalCreateProducer(address, maxRate);
+      return internalCreateProducer(address, maxRate, true);
    }
 
    public ClientProducer createProducer(final String address, final int rate) throws ActiveMQException {
@@ -1058,7 +1062,7 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
 
    @Override
    public synchronized ClientProducerCredits getCredits(final SimpleString address, final boolean anon) {
-      ClientProducerCredits credits = producerCreditManager.getCredits(address, anon, sessionContext);
+      ClientProducerCredits credits = producerCreditManager.getCredits(address, anon, sessionContext, false);
 
       return credits;
    }
@@ -1525,10 +1529,11 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
    }
 
    private ClientProducer internalCreateProducer(final SimpleString address,
-                                                 final int maxRate) throws ActiveMQException {
+                                                 final int maxRate,
+                                                 boolean lockOnCreditShortage) throws ActiveMQException {
       checkClosed();
 
-      ClientProducerInternal producer = new ClientProducerImpl(this, address, maxRate == -1 ? null : new TokenBucketLimiterImpl(maxRate, false), autoCommitSends && blockOnNonDurableSend, autoCommitSends && blockOnDurableSend, autoGroup, groupID == null ? null : new SimpleString(groupID), minLargeMessageSize, sessionContext);
+      ClientProducerInternal producer = new ClientProducerImpl(this, address, maxRate == -1 ? null : new TokenBucketLimiterImpl(maxRate, false), autoCommitSends && blockOnNonDurableSend, autoCommitSends && blockOnDurableSend, autoGroup, groupID == null ? null : new SimpleString(groupID), minLargeMessageSize, sessionContext, true);
 
       addProducer(producer);
 

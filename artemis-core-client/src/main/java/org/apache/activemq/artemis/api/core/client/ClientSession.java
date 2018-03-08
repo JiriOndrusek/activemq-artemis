@@ -544,6 +544,15 @@ public interface ClientSession extends XAResource, AutoCloseable {
     * @return a ClientProducer
     * @throws ActiveMQException if an exception occurs while creating the ClientProducer
     */
+   ClientProducer createProducer(SimpleString address, boolean lockOnCreditShortage) throws ActiveMQException;
+
+   /**
+    * Creates a producer which sends messages to the given address
+    *
+    * @param address the address to send messages to
+    * @return a ClientProducer
+    * @throws ActiveMQException if an exception occurs while creating the ClientProducer
+    */
    ClientProducer createProducer(String address) throws ActiveMQException;
 
    /**

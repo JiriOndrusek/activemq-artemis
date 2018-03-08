@@ -44,7 +44,8 @@ public class ClientProducerCreditManagerImpl implements ClientProducerCreditMana
    @Override
    public synchronized ClientProducerCredits getCredits(final SimpleString address,
                                                         final boolean anon,
-                                                        SessionContext context) {
+                                                        SessionContext context,
+                                                        boolean lockOnCreditShortage) {
       if (windowSize == -1) {
          return ClientProducerCreditsNoFlowControl.instance;
       } else {
@@ -56,7 +57,7 @@ public class ClientProducerCreditManagerImpl implements ClientProducerCreditMana
 
             if (credits == null) {
                // Doesn't need to be fair since session is single threaded
-               credits = new ClientProducerCreditsImpl(session, address, windowSize);
+               credits = new ClientProducerCreditsImpl(session, address, windowSize, lockOnCreditShortage);
                needInit = true;
 
                producerCredits.put(address, credits);
