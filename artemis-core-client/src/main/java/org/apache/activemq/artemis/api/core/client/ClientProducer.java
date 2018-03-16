@@ -62,7 +62,10 @@ public interface ClientProducer extends AutoCloseable {
     * @param message the message to send
     * @throws ActiveMQException if an exception occurs while sending the message
     */
-   void send(Message message) throws ActiveMQException;
+   default void send(Message message) throws ActiveMQException {
+      send(message, (AvailablePermitsCallback) null);
+   }
+   void send(Message message, AvailablePermitsCallback availablePermitsCallback) throws ActiveMQException;
 
    /**
     * Sends a message to the specified address instead of the ClientProducer's address. <br>
@@ -75,7 +78,10 @@ public interface ClientProducer extends AutoCloseable {
     * @param handler handler to call after receiving a SEND acknowledgement from the server
     * @throws ActiveMQException if an exception occurs while sending the message
     */
-   void send(Message message, SendAcknowledgementHandler handler) throws ActiveMQException;
+   void send(Message message, SendAcknowledgementHandler handler, AvailablePermitsCallback ownedCredits) throws ActiveMQException;
+   default void send(Message message, SendAcknowledgementHandler handle) throws ActiveMQException {
+      send(message, handle, null);
+   }
 
    /**
     * Sends a message to the specified address instead of the ClientProducer's address. <br>
@@ -89,7 +95,10 @@ public interface ClientProducer extends AutoCloseable {
     * @param message the message to send
     * @throws ActiveMQException if an exception occurs while sending the message
     */
-   void send(SimpleString address, Message message) throws ActiveMQException;
+   void send(SimpleString address, Message message, AvailablePermitsCallback ownedCredits) throws ActiveMQException;
+   default void send(SimpleString address, Message message) throws ActiveMQException {
+      send(address, message, (AvailablePermitsCallback)null);
+   }
 
    /**
     * Sends a message to the specified address instead of the ClientProducer's address. <br>
@@ -103,7 +112,10 @@ public interface ClientProducer extends AutoCloseable {
     * @param handler handler to call after receiving a SEND acknowledgement from the server
     * @throws ActiveMQException if an exception occurs while sending the message
     */
-   void send(SimpleString address, Message message, SendAcknowledgementHandler handler) throws ActiveMQException;
+   void send(SimpleString address, Message message, SendAcknowledgementHandler handler, AvailablePermitsCallback ownedCredits) throws ActiveMQException;
+   default void send(SimpleString address, Message message, SendAcknowledgementHandler handler) throws ActiveMQException {
+      send(address, message, handler, null);
+   }
 
    /**
     * Sends a message to the specified address instead of the ClientProducer's address. <br>
@@ -117,7 +129,10 @@ public interface ClientProducer extends AutoCloseable {
     * @param message the message to send
     * @throws ActiveMQException if an exception occurs while sending the message
     */
-   void send(String address, Message message) throws ActiveMQException;
+   void send(String address, Message message, AvailablePermitsCallback ownedCredits) throws ActiveMQException;
+   default void send(String address, Message message) throws ActiveMQException {
+      send(address, message);
+   }
 
    /**
     * Closes the ClientProducer. If already closed nothing is done.

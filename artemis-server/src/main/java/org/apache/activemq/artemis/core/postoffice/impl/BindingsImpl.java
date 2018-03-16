@@ -21,6 +21,7 @@ import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -310,6 +311,17 @@ public final class BindingsImpl implements Bindings {
       return "BindingsImpl [name=" + name + "]";
    }
 
+   List<Binding> reorderBindingsByCreditsOwned(List<Binding> bindings)
+   {
+//      System.out.println(":::::::::::::::::::::::::::: " + bindings);
+//      Collections.sort(bindings, (b1, b2) -> -1*Integer.compare(b1.getAvailablePermits(), b2.getAvailablePermits()));
+
+//      Collections.reverse(bindings);
+
+
+      return bindings;
+   }
+
    /**
     * This code has a race on the assigned value to routing names.
     * <p>
@@ -320,10 +332,37 @@ public final class BindingsImpl implements Bindings {
     */
    private Binding getNextBinding(final ServerMessage message,
                                   final SimpleString routingName,
-                                  final List<Binding> bindings) {
+                                  final List<Binding> bindingsNotOrdered) {
       Integer ipos = routingNamePositions.get(routingName);
 
       int pos = ipos != null ? ipos : 0;
+
+      System.out.println("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOO started position:" + pos );
+      int oldPos = pos;
+      Binding b = bindingsNotOrdered.get(pos);
+
+      if(pos == 2) {
+         pos = 1;
+      }
+      List<Binding> bindings = reorderBindingsByCreditsOwned(bindingsNotOrdered);
+
+//      //todo jondruse recount pos
+//      if(bindingsNotOrdered.size() > pos) {
+//         if (pos < bindings.size() - 1) {
+//            b = bindings.remove(pos);
+//            bindings.add(pos+1,b);
+////            System.out.println("the same,the same,the same,the same,the same,the same,the same");
+//         } else {
+//            b = bindings.remove(pos);
+//            bindings.add(0, b);
+//         }
+//         pos = bindings.indexOf(b);
+//         if(oldPos != pos) {
+//            System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX   changed postion from "+oldPos+ " to " + pos);
+//         } else {
+//            System.out.println("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY  NOTchanged postion from "+oldPos+ " to " + pos);
+//         }
+//       }
 
       int length = bindings.size();
 

@@ -671,7 +671,7 @@ public class BridgeImpl implements Bridge, SessionFailureListener, SendAcknowled
          @Override
          public void run() {
             try {
-               producer.send(dest, message);
+               producer.send(dest, message, ref.getBindingCallback());
 
                // as soon as we are done sending the large message
                // we unset the delivery flag and we will call the deliveryAsync on the queue
@@ -707,7 +707,7 @@ public class BridgeImpl implements Bridge, SessionFailureListener, SendAcknowled
       }
 
       try {
-         producer.send(dest, message);
+         producer.send(dest, message, ref.getBindingCallback());
       } catch (final ActiveMQException e) {
          ActiveMQServerLogger.LOGGER.bridgeUnableToSendMessage(e, ref);
 

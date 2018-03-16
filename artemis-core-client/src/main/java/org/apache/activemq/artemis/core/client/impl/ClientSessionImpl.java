@@ -33,6 +33,7 @@ import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.ActiveMQExceptionType;
 import org.apache.activemq.artemis.api.core.Message;
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.api.core.client.AvailablePermitsCallback;
 import org.apache.activemq.artemis.api.core.client.ClientConsumer;
 import org.apache.activemq.artemis.api.core.client.ClientMessage;
 import org.apache.activemq.artemis.api.core.client.ClientProducer;
@@ -1057,8 +1058,8 @@ public final class ClientSessionImpl implements ClientSessionInternal, FailureLi
    }
 
    @Override
-   public synchronized ClientProducerCredits getCredits(final SimpleString address, final boolean anon) {
-      ClientProducerCredits credits = producerCreditManager.getCredits(address, anon, sessionContext);
+   public synchronized ClientProducerCredits getCredits(final SimpleString address, final boolean anon, AvailablePermitsCallback availablePermitsCallback) {
+      ClientProducerCredits credits = producerCreditManager.getCredits(address, anon, sessionContext, availablePermitsCallback);
 
       return credits;
    }

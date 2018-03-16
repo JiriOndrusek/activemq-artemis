@@ -20,11 +20,13 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.RouteContextList;
 import org.apache.activemq.artemis.core.server.RoutingContext;
+import org.apache.activemq.artemis.core.server.cluster.impl.RemoteBindingCallback;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 
 public final class RoutingContextImpl implements RoutingContext {
@@ -35,6 +37,18 @@ public final class RoutingContextImpl implements RoutingContext {
    private Transaction transaction;
 
    private int queueCount;
+
+   private RemoteBindingCallback bindingCallback;
+
+   @Override
+   public RemoteBindingCallback getBindingCallback() {
+      return bindingCallback;
+   }
+
+   @Override
+   public void setBindingCallback(RemoteBindingCallback bindingCallback) {
+      this.bindingCallback = bindingCallback;
+   }
 
    public RoutingContextImpl(final Transaction transaction) {
       this.transaction = transaction;

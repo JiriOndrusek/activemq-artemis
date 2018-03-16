@@ -20,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.core.server.cluster.impl.RemoteBindingCallback;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 
 public interface RoutingContext {
@@ -45,4 +46,7 @@ public interface RoutingContext {
    void addQueueWithAck(SimpleString address, Queue queue);
 
    boolean isAlreadyAcked(SimpleString address, Queue queue);
+
+   RemoteBindingCallback getBindingCallback();
+   void setBindingCallback(RemoteBindingCallback bindingCallback);
 }

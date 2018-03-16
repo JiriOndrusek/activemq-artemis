@@ -21,6 +21,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.ServerMessage;
+import org.apache.activemq.artemis.core.server.cluster.impl.RemoteBindingCallback;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 import org.apache.activemq.artemis.utils.MemorySize;
 
@@ -44,6 +45,8 @@ public class MessageReferenceImpl implements MessageReference {
    private boolean alreadyAcked;
 
    private Object protocolData;
+
+   private RemoteBindingCallback bindingCallback;
 
    // Static --------------------------------------------------------
 
@@ -80,12 +83,18 @@ public class MessageReferenceImpl implements MessageReference {
       this.queue = queue;
    }
 
-   protected MessageReferenceImpl(final ServerMessage message, final Queue queue) {
+   protected MessageReferenceImpl(final ServerMessage message, final Queue queue, RemoteBindingCallback bindingCallback) {
       this.message = message;
 
       this.queue = queue;
+
+      this.bindingCallback =  bindingCallback;
    }
 
+   @Override
+   public RemoteBindingCallback getBindingCallback() {
+      return bindingCallback;
+   }
    // MessageReference implementation -------------------------------
 
    @Override

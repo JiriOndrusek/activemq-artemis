@@ -22,6 +22,7 @@ import java.util.concurrent.TimeUnit;
 import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.ActiveMQInterruptedException;
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.api.core.client.AvailablePermitsCallback;
 import org.apache.activemq.artemis.core.client.ActiveMQClientLogger;
 import org.apache.activemq.artemis.core.client.ActiveMQClientMessageBundle;
 import org.apache.activemq.artemis.spi.core.remoting.SessionContext;
@@ -50,9 +51,12 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
 
    private SessionContext sessionContext;
 
+   private AvailablePermitsCallback availablePermitsCallback;
+
    public ClientProducerCreditsImpl(final ClientSessionInternal session,
                                     final SimpleString address,
-                                    final int windowSize) {
+                                    final int windowSize,
+                                    AvailablePermitsCallback availablePermitsCallback) {
       this.session = session;
 
       this.address = address;
@@ -62,6 +66,8 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
       // Doesn't need to be fair since session is single threaded
 
       semaphore = new Semaphore(0, false);
+
+      this.availablePermitsCallback = availablePermitsCallback;
    }
 
    @Override
@@ -120,6 +126,11 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
             throw ActiveMQClientMessageBundle.BUNDLE.addressIsFull(address.toString(), credits);
          }
       }
+
+      if (availablePermitsCallback != null) {
+         availablePermitsCallback.callback(null, credits);
+      }
+
    }
 
    @Override
@@ -138,6 +149,9 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
       }
 
       semaphore.release(credits);
+      if (availablePermitsCallback != null) {
+         availablePermitsCallback.callback(null, semaphore.availablePermits());
+      }
    }
 
    @Override
@@ -161,6 +175,9 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
       // If we are waiting for more credits than what's configured, then we need to use what we tried before
       // otherwise the client may starve as the credit will never arrive
       checkCredits(Math.max(windowSize * 2, beforeFailure));
+      if (availablePermitsCallback != null) {
+         availablePermitsCallback.callback(null, semaphore.availablePermits());
+      }
    }
 
    @Override
@@ -169,6 +186,9 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
       closed = true;
 
       semaphore.release(Integer.MAX_VALUE / 2);
+      if (availablePermitsCallback != null) {
+         availablePermitsCallback.callback(null, semaphore.availablePermits());
+      }
    }
 
    @Override
@@ -185,6 +205,7 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
    public synchronized void releaseOutstanding() {
       semaphore.drainPermits();
    }
+
 
    private void checkCredits(final int credits) {
       int needed = Math.max(credits, windowSize);

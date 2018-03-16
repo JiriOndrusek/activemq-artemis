@@ -18,6 +18,7 @@ package org.apache.activemq.artemis.core.server.impl;
 
 import java.io.InputStream;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 import org.apache.activemq.artemis.api.core.Message;
 import org.apache.activemq.artemis.api.core.SimpleString;
@@ -26,6 +27,7 @@ import org.apache.activemq.artemis.core.paging.PagingStore;
 import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.ServerMessage;
+import org.apache.activemq.artemis.core.server.cluster.impl.RemoteBindingCallback;
 import org.apache.activemq.artemis.utils.DataConstants;
 import org.apache.activemq.artemis.utils.MemorySize;
 import org.apache.activemq.artemis.utils.TypedProperties;
@@ -96,8 +98,8 @@ public class ServerMessageImpl extends MessageImpl implements ServerMessage {
    }
 
    @Override
-   public MessageReference createReference(final Queue queue) {
-      MessageReference ref = new MessageReferenceImpl(this, queue);
+   public MessageReference createReference(final Queue queue, RemoteBindingCallback bindingCallback) {
+      MessageReference ref = new MessageReferenceImpl(this, queue, bindingCallback);
 
       return ref;
    }

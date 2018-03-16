@@ -17,11 +17,12 @@
 package org.apache.activemq.artemis.core.client.impl;
 
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.api.core.client.AvailablePermitsCallback;
 import org.apache.activemq.artemis.spi.core.remoting.SessionContext;
 
 public interface ClientProducerCreditManager {
 
-   ClientProducerCredits getCredits(SimpleString address, boolean anon, SessionContext context);
+   ClientProducerCredits getCredits(SimpleString address, boolean anon, SessionContext context, AvailablePermitsCallback availablePermitsCallback);
 
    void returnCredits(SimpleString address);
 

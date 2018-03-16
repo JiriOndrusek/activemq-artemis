@@ -23,6 +23,8 @@ import org.apache.activemq.artemis.core.server.RoutingContext;
 import org.apache.activemq.artemis.core.server.ServerMessage;
 import org.apache.activemq.artemis.core.server.group.UnproposalListener;
 
+import java.util.List;
+
 public interface Binding extends UnproposalListener {
 
    SimpleString getAddress();
@@ -53,6 +55,12 @@ public interface Binding extends UnproposalListener {
 
    void close() throws Exception;
 
+   default List<Binding> reorderBindingsByCreditsOwned(List<Binding> bindings)
+   {
+      return bindings;
+   }
+
+
    /**
     * This method will create a string representation meant for management operations.
     * <p>
@@ -64,4 +72,8 @@ public interface Binding extends UnproposalListener {
    String toManagementString();
 
    boolean isConnected();
+
+   default int getAvailablePermits() {
+      return Integer.MAX_VALUE;
+   }
 }

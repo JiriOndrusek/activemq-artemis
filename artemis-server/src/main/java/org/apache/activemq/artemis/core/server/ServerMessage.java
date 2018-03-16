@@ -20,6 +20,9 @@ import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.journal.EncodingSupport;
 import org.apache.activemq.artemis.core.message.impl.MessageInternal;
 import org.apache.activemq.artemis.core.paging.PagingStore;
+import org.apache.activemq.artemis.core.server.cluster.impl.RemoteBindingCallback;
+
+import java.util.function.Consumer;
 
 /**
  * A ServerMessage
@@ -28,7 +31,7 @@ public interface ServerMessage extends MessageInternal, EncodingSupport {
 
    ServerMessage setMessageID(long id);
 
-   MessageReference createReference(Queue queue);
+   MessageReference createReference(Queue queue, RemoteBindingCallback bindingCallback);
 
    /**
     * This will force encoding of the address, and will re-check the buffer

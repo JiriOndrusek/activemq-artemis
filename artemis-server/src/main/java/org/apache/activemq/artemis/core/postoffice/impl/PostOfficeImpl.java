@@ -724,7 +724,7 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
                                    final Transaction tx) throws Exception {
       setPagingStore(message);
 
-      MessageReference reference = message.createReference(queue);
+      MessageReference reference = message.createReference(queue, null);
 
       if (message.containsProperty(Message.HDR_SCHEDULED_DELIVERY_TIME)) {
          Long scheduledDeliveryTime = message.getLongProperty(Message.HDR_SCHEDULED_DELIVERY_TIME);
@@ -985,7 +985,7 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
          }
 
          for (Queue queue : entry.getValue().getNonDurableQueues()) {
-            MessageReference reference = message.createReference(queue);
+            MessageReference reference = message.createReference(queue, context.getBindingCallback());
 
             refs.add(reference);
             if (message.containsProperty(Message.HDR_SCHEDULED_DELIVERY_TIME)) {
@@ -1002,7 +1002,7 @@ public class PostOfficeImpl implements PostOffice, NotificationListener, Binding
          while (iter.hasNext()) {
             Queue queue = iter.next();
 
-            MessageReference reference = message.createReference(queue);
+            MessageReference reference = message.createReference(queue, context.getBindingCallback());
 
             if (context.isAlreadyAcked(message.getAddress(), queue)) {
                reference.setAlreadyAcked();

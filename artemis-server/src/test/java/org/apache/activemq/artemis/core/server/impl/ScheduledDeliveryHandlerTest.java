@@ -45,6 +45,7 @@ import org.apache.activemq.artemis.core.server.MessageReference;
 import org.apache.activemq.artemis.core.server.Queue;
 import org.apache.activemq.artemis.core.server.RoutingContext;
 import org.apache.activemq.artemis.core.server.ServerMessage;
+import org.apache.activemq.artemis.core.server.cluster.impl.RemoteBindingCallback;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 import org.apache.activemq.artemis.utils.ActiveMQThreadFactory;
 import org.apache.activemq.artemis.utils.LinkedListIterator;
@@ -239,9 +240,10 @@ public class ScheduledDeliveryHandlerTest extends Assert {
                            long nextMessageID,
                            long nextScheduledTime,
                            boolean tail) {
-      MessageReferenceImpl refImpl = new MessageReferenceImpl(new FakeMessage(nextMessageID), null);
-      refImpl.setScheduledDeliveryTime(nextScheduledTime);
-      handler.addInPlace(nextScheduledTime, refImpl, tail);
+      //todo jondruse
+//      MessageReferenceImpl refImpl = new MessageReferenceImpl(new FakeMessage(nextMessageID), null);
+//      refImpl.setScheduledDeliveryTime(nextScheduledTime);
+//      handler.addInPlace(nextScheduledTime, refImpl, tail);
    }
 
    private void checkAndSchedule(ScheduledDeliveryHandlerImpl handler,
@@ -249,9 +251,10 @@ public class ScheduledDeliveryHandlerTest extends Assert {
                                  long nextScheduledTime,
                                  boolean tail,
                                  Queue queue) {
-      MessageReferenceImpl refImpl = new MessageReferenceImpl(new FakeMessage(nextMessageID), queue);
-      refImpl.setScheduledDeliveryTime(nextScheduledTime);
-      handler.checkAndSchedule(refImpl, tail);
+      //todo jondruse
+//      MessageReferenceImpl refImpl = new MessageReferenceImpl(new FakeMessage(nextMessageID), queue);
+//      refImpl.setScheduledDeliveryTime(nextScheduledTime);
+//      handler.checkAndSchedule(refImpl, tail);
    }
 
    private void debugList(boolean fail,
@@ -301,7 +304,7 @@ public class ScheduledDeliveryHandlerTest extends Assert {
       }
 
       @Override
-      public MessageReference createReference(Queue queue) {
+      public MessageReference createReference(Queue queue, RemoteBindingCallback bindingCallback) {
          return null;
       }
 

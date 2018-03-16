@@ -19,6 +19,7 @@ package org.apache.activemq.artemis.core.client.impl;
 import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.Message;
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.api.core.client.AvailablePermitsCallback;
 import org.apache.activemq.artemis.api.core.client.ClientConsumer;
 import org.apache.activemq.artemis.api.core.client.ClientSession;
 import org.apache.activemq.artemis.api.core.client.SendAcknowledgementHandler;
@@ -78,7 +79,7 @@ public interface ClientSessionInternal extends ClientSession {
 
    void sendProducerCreditsMessage(int credits, SimpleString address);
 
-   ClientProducerCredits getCredits(SimpleString address, boolean anon);
+   ClientProducerCredits getCredits(SimpleString address, boolean anon, AvailablePermitsCallback availablePermitsCallback);
 
    void returnCredits(SimpleString address);
 

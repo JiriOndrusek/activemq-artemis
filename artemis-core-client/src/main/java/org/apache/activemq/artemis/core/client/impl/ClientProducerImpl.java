@@ -25,6 +25,7 @@ import org.apache.activemq.artemis.api.core.ActiveMQBuffers;
 import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.Message;
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.api.core.client.AvailablePermitsCallback;
 import org.apache.activemq.artemis.api.core.client.SendAcknowledgementHandler;
 import org.apache.activemq.artemis.core.client.ActiveMQClientMessageBundle;
 import org.apache.activemq.artemis.core.message.BodyEncoder;
@@ -99,7 +100,7 @@ public class ClientProducerImpl implements ClientProducerInternal {
       this.minLargeMessageSize = minLargeMessageSize;
 
       if (address != null) {
-         producerCredits = session.getCredits(address, false);
+         producerCredits = session.getCredits(address, false, null);
       } else {
          producerCredits = null;
       }
@@ -113,34 +114,35 @@ public class ClientProducerImpl implements ClientProducerInternal {
    }
 
    @Override
-   public void send(final Message msg) throws ActiveMQException {
+   public void send(final Message msg, AvailablePermitsCallback ownedCredits) throws ActiveMQException {
       checkClosed();
 
-      doSend(null, msg, null, false);
+      doSend(null, msg, null, false, ownedCredits);
    }
 
    @Override
-   public void send(final SimpleString address1, final Message msg) throws ActiveMQException {
+   public void send(final SimpleString address1, final Message msg, AvailablePermitsCallback ownedCredits) throws ActiveMQException {
       checkClosed();
 
-      doSend(address1, msg, null, false);
+      doSend(address1, msg, null, false, ownedCredits);
    }
 
    @Override
-   public void send(final String address1, final Message message) throws ActiveMQException {
-      send(SimpleString.toSimpleString(address1), message);
+   public void send(final String address1, final Message message, AvailablePermitsCallback ownedCredits) throws ActiveMQException {
+      send(SimpleString.toSimpleString(address1), message, ownedCredits);
    }
 
    @Override
    public void send(SimpleString address1,
                     Message message,
-                    SendAcknowledgementHandler handler) throws ActiveMQException {
+                    SendAcknowledgementHandler handler,
+                    AvailablePermitsCallback ownedCredits) throws ActiveMQException {
       checkClosed();
       boolean confirmationWindowEnabled = session.isConfirmationWindowEnabled();
       if (confirmationWindowEnabled) {
-         doSend(address1, message, handler, true);
+         doSend(address1, message, handler, true, ownedCredits);
       } else {
-         doSend(address1, message, null, true);
+         doSend(address1, message, null, true, ownedCredits);
          if (handler != null) {
             session.scheduleConfirmation(handler, message);
          }
@@ -148,8 +150,8 @@ public class ClientProducerImpl implements ClientProducerInternal {
    }
 
    @Override
-   public void send(Message message, SendAcknowledgementHandler handler) throws ActiveMQException {
-      send(null, message, handler);
+   public void send(Message message, SendAcknowledgementHandler handler, AvailablePermitsCallback ownedCredits) throws ActiveMQException {
+      send(null, message, handler, ownedCredits);
    }
 
    @Override
@@ -210,7 +212,7 @@ public class ClientProducerImpl implements ClientProducerInternal {
    private void doSend(SimpleString sendingAddress,
                        final Message msg,
                        final SendAcknowledgementHandler handler,
-                       final boolean forceAsync) throws ActiveMQException {
+                       final boolean forceAsync, AvailablePermitsCallback availablePermitsCallback) throws ActiveMQException {
       if (sendingAddress == null) {
          sendingAddress = this.address;
       }
@@ -239,7 +241,7 @@ public class ClientProducerImpl implements ClientProducerInternal {
          }
 
          // Anonymous
-         theCredits = session.getCredits(sendingAddress, true);
+         theCredits = session.getCredits(sendingAddress, true, availablePermitsCallback);
 
          if (rateLimiter != null) {
             // Rate flow control

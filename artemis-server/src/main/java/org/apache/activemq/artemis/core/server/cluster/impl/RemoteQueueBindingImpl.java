@@ -27,6 +27,7 @@ import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.core.filter.Filter;
 import org.apache.activemq.artemis.core.filter.impl.FilterImpl;
 import org.apache.activemq.artemis.core.message.impl.MessageImpl;
+import org.apache.activemq.artemis.core.postoffice.Binding;
 import org.apache.activemq.artemis.core.postoffice.BindingType;
 import org.apache.activemq.artemis.core.server.Bindable;
 import org.apache.activemq.artemis.core.server.Queue;
@@ -65,6 +66,8 @@ public class RemoteQueueBindingImpl implements RemoteQueueBinding {
 
    private boolean connected = true;
 
+   int availablePermits = -1;
+
    public RemoteQueueBindingImpl(final long id,
                                  final SimpleString address,
                                  final SimpleString uniqueName,
@@ -91,6 +94,16 @@ public class RemoteQueueBindingImpl implements RemoteQueueBinding {
       idsHeaderName = MessageImpl.HDR_ROUTE_TO_IDS.concat(bridgeName);
 
       this.distance = distance;
+   }
+
+   @Override
+   public void setAvailablePermits(int availablePermits) {
+      this.availablePermits = availablePermits;
+   }
+
+   @Override
+   public int getAvailablePermits() {
+      return availablePermits;
    }
 
    @Override
@@ -177,10 +190,16 @@ public class RemoteQueueBindingImpl implements RemoteQueueBinding {
 
       List<Queue> durableQueuesOnContext = context.getDurableQueues(storeAndForwardQueue.getAddress());
 
+
+
       if (!durableQueuesOnContext.contains(storeAndForwardQueue)) {
+         SimpleString address;
          // There can be many remote bindings for the same node, we only want to add the message once to
          // the s & f queue for that node
          context.addQueue(storeAndForwardQueue.getAddress(), storeAndForwardQueue);
+
+         //todo jondruse
+         context.setBindingCallback(new RemoteBindingCallback(this));
       }
    }
 
@@ -342,5 +361,11 @@ public class RemoteQueueBindingImpl implements RemoteQueueBinding {
    @Override
    public long getRemoteQueueID() {
       return remoteQueueID;
+   }
+
+   @Override
+   public List<Binding> reorderBindingsByCreditsOwned(List<Binding> bindings)
+   {
+      return bindings;
    }
 }

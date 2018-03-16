@@ -21,6 +21,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.api.core.client.AvailablePermitsCallback;
 import org.apache.activemq.artemis.spi.core.remoting.SessionContext;
 
 public class ClientProducerCreditManagerImpl implements ClientProducerCreditManager {
@@ -44,7 +45,8 @@ public class ClientProducerCreditManagerImpl implements ClientProducerCreditMana
    @Override
    public synchronized ClientProducerCredits getCredits(final SimpleString address,
                                                         final boolean anon,
-                                                        SessionContext context) {
+                                                        SessionContext context,
+                                                        AvailablePermitsCallback availablePermitsCallback) {
       if (windowSize == -1) {
          return ClientProducerCreditsNoFlowControl.instance;
       } else {
@@ -56,7 +58,7 @@ public class ClientProducerCreditManagerImpl implements ClientProducerCreditMana
 
             if (credits == null) {
                // Doesn't need to be fair since session is single threaded
-               credits = new ClientProducerCreditsImpl(session, address, windowSize);
+               credits = new ClientProducerCreditsImpl(session, address, windowSize, availablePermitsCallback);
                needInit = true;
 
                producerCredits.put(address, credits);

@@ -16,6 +16,7 @@
  */
 package org.apache.activemq.artemis.core.server;
 
+import org.apache.activemq.artemis.core.server.cluster.impl.RemoteBindingCallback;
 import org.apache.activemq.artemis.core.server.impl.AckReason;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 
@@ -89,4 +90,8 @@ public interface MessageReference {
    void setAlreadyAcked();
 
    boolean isAlreadyAcked();
+
+   default RemoteBindingCallback getBindingCallback() {
+      return null;
+   }
 }

@@ -486,7 +486,7 @@ public class ActiveMQMessageProducer implements MessageProducer, QueueSender, To
           * so we avoid it if we can.
           */
          if (completionListener != null) {
-            clientProducer.send(address, coreMessage, new CompletionListenerWrapper(completionListener, jmsMessage, this));
+            clientProducer.send(address, coreMessage, new CompletionListenerWrapper(completionListener, jmsMessage, this), null);
          } else {
             clientProducer.send(address, coreMessage);
          }
