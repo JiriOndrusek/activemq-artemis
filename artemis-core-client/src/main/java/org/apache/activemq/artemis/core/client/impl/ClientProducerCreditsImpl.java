@@ -82,7 +82,7 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
    }
 
    @Override
-   public void acquireCredits(final int credits) throws ActiveMQException {
+   public boolean acquireCredits(final int credits) throws ActiveMQException {
       checkCredits(credits);
 
       boolean tryAcquire;
@@ -91,20 +91,29 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
          tryAcquire = semaphore.tryAcquire(credits);
       }
 
-      if (!tryAcquire) {
-         if (!closed) {
-            this.blocked = true;
-            try {
-               while (!semaphore.tryAcquire(credits, 10, TimeUnit.SECONDS)) {
-                  // I'm using string concatenation here in case address is null
-                  // better getting a "null" string than a NPE
-                  ActiveMQClientLogger.LOGGER.outOfCreditOnFlowControl("" + address);
+      if(availablePermitsCallback != null) {
+         if (availablePermitsCallback != null) {
+            availablePermitsCallback.callback(null, !tryAcquire);
+         }
+      }
+      else {
+         if (!tryAcquire) {
+            if (!closed) {
+               this.blocked = true;
+
+               try {
+                  while (!semaphore.tryAcquire(credits, 10, TimeUnit.SECONDS)) {
+                     // I'm using string concatenation here in case address is null
+                     // better getting a "null" string than a NPE
+                     ActiveMQClientLogger.LOGGER.outOfCreditOnFlowControl("" + address);
+                  }
+               } catch (InterruptedException interrupted) {
+                  Thread.currentThread().interrupt();
+                  throw new ActiveMQInterruptedException(interrupted);
+               } finally {
+                  this.blocked = false;
+
                }
-            } catch (InterruptedException interrupted) {
-               Thread.currentThread().interrupt();
-               throw new ActiveMQInterruptedException(interrupted);
-            } finally {
-               this.blocked = false;
             }
          }
       }
@@ -128,8 +137,9 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
       }
 
       if (availablePermitsCallback != null) {
-         availablePermitsCallback.callback(null, credits);
+         return !availablePermitsCallback.isLocked();
       }
+      return true;
 
    }
 
@@ -149,9 +159,6 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
       }
 
       semaphore.release(credits);
-      if (availablePermitsCallback != null) {
-         availablePermitsCallback.callback(null, semaphore.availablePermits());
-      }
    }
 
    @Override
@@ -175,9 +182,6 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
       // If we are waiting for more credits than what's configured, then we need to use what we tried before
       // otherwise the client may starve as the credit will never arrive
       checkCredits(Math.max(windowSize * 2, beforeFailure));
-      if (availablePermitsCallback != null) {
-         availablePermitsCallback.callback(null, semaphore.availablePermits());
-      }
    }
 
    @Override
@@ -186,9 +190,6 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
       closed = true;
 
       semaphore.release(Integer.MAX_VALUE / 2);
-      if (availablePermitsCallback != null) {
-         availablePermitsCallback.callback(null, semaphore.availablePermits());
-      }
    }
 
    @Override

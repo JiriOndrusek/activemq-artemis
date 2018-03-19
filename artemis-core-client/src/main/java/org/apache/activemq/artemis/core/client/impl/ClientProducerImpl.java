@@ -284,9 +284,9 @@ public class ClientProducerImpl implements ClientProducerInternal {
 
       int creditSize = sessionContext.getCreditsOnSendingFull(msgI);
 
-      theCredits.acquireCredits(creditSize);
-
-      sessionContext.sendFullMessage(msgI, sendBlocking, handler, address);
+      if(theCredits.acquireCredits(creditSize)) {
+         sessionContext.sendFullMessage(msgI, sendBlocking, handler, address);
+      }
    }
 
    private void checkClosed() throws ActiveMQException {

@@ -73,7 +73,7 @@ public interface Binding extends UnproposalListener {
 
    boolean isConnected();
 
-   default int getAvailablePermits() {
-      return Integer.MAX_VALUE;
+   default boolean isLocked() {
+      return false;
    }
 }

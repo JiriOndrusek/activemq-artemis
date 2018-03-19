@@ -21,7 +21,7 @@ import org.apache.activemq.artemis.spi.core.remoting.SessionContext;
 
 public interface ClientProducerCredits {
 
-   void acquireCredits(int credits) throws ActiveMQException;
+   boolean acquireCredits(int credits) throws ActiveMQException;
 
    void receiveCredits(int credits);
 

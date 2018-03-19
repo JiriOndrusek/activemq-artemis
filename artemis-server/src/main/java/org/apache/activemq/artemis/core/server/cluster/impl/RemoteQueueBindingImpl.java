@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.api.core.client.AvailablePermitsCallback;
 import org.apache.activemq.artemis.core.filter.Filter;
 import org.apache.activemq.artemis.core.filter.impl.FilterImpl;
 import org.apache.activemq.artemis.core.message.impl.MessageImpl;
@@ -66,7 +67,7 @@ public class RemoteQueueBindingImpl implements RemoteQueueBinding {
 
    private boolean connected = true;
 
-   int availablePermits = -1;
+   AvailablePermitsCallback permitsCallback = null;
 
    public RemoteQueueBindingImpl(final long id,
                                  final SimpleString address,
@@ -97,13 +98,16 @@ public class RemoteQueueBindingImpl implements RemoteQueueBinding {
    }
 
    @Override
-   public void setAvailablePermits(int availablePermits) {
-      this.availablePermits = availablePermits;
+   public void setAvailablePermitsCallback(AvailablePermitsCallback callback) {
+      this.permitsCallback = callback;
    }
 
    @Override
-   public int getAvailablePermits() {
-      return availablePermits;
+   public boolean isLocked() {
+      if(permitsCallback != null) {
+         return permitsCallback.isLocked();
+      }
+      return false;
    }
 
    @Override

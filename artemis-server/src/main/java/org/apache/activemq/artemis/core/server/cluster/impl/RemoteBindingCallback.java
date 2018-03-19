@@ -8,13 +8,20 @@ public class RemoteBindingCallback implements AvailablePermitsCallback {
 
     final private RemoteQueueBinding remoteBinding;
 
+    private boolean locked = false;
+
 
     public RemoteBindingCallback(RemoteQueueBinding remoteBinding) {
         this.remoteBinding = remoteBinding;
     }
 
     @Override
-    public void callback(SimpleString address, int availablePermits) {
-        remoteBinding.setAvailablePermits(availablePermits);
+    public synchronized void callback(SimpleString address, boolean locked) {
+        this.locked = locked;
+    }
+
+    @Override
+    public synchronized boolean isLocked() {
+        return locked;
     }
 }

@@ -332,37 +332,10 @@ public final class BindingsImpl implements Bindings {
     */
    private Binding getNextBinding(final ServerMessage message,
                                   final SimpleString routingName,
-                                  final List<Binding> bindingsNotOrdered) {
+                                  final List<Binding> bindings) {
       Integer ipos = routingNamePositions.get(routingName);
 
       int pos = ipos != null ? ipos : 0;
-
-      System.out.println("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOO started position:" + pos );
-      int oldPos = pos;
-      Binding b = bindingsNotOrdered.get(pos);
-
-      if(pos == 2) {
-         pos = 1;
-      }
-      List<Binding> bindings = reorderBindingsByCreditsOwned(bindingsNotOrdered);
-
-//      //todo jondruse recount pos
-//      if(bindingsNotOrdered.size() > pos) {
-//         if (pos < bindings.size() - 1) {
-//            b = bindings.remove(pos);
-//            bindings.add(pos+1,b);
-////            System.out.println("the same,the same,the same,the same,the same,the same,the same");
-//         } else {
-//            b = bindings.remove(pos);
-//            bindings.add(0, b);
-//         }
-//         pos = bindings.indexOf(b);
-//         if(oldPos != pos) {
-//            System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX   changed postion from "+oldPos+ " to " + pos);
-//         } else {
-//            System.out.println("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY  NOTchanged postion from "+oldPos+ " to " + pos);
-//         }
-//       }
 
       int length = bindings.size();
 
@@ -394,7 +367,7 @@ public final class BindingsImpl implements Bindings {
          if (filter == null || filter.match(message)) {
             // bindings.length == 1 ==> only a local queue so we don't check for matching consumers (it's an
             // unnecessary overhead)
-            if (length == 1 || (binding.isConnected() && (messageLoadBalancingType.equals(MessageLoadBalancingType.STRICT) || binding.isHighAcceptPriority(message)))) {
+            if (length == 1 || (!binding.isLocked() && binding.isConnected() && (messageLoadBalancingType.equals(MessageLoadBalancingType.STRICT) || binding.isHighAcceptPriority(message)))) {
                theBinding = binding;
 
                pos = incrementPos(pos, length);
@@ -444,6 +417,129 @@ public final class BindingsImpl implements Bindings {
       }
       return theBinding;
    }
+
+//   /**
+//    * This code has a race on the assigned value to routing names.
+//    * <p>
+//    * This is not that much of an issue because<br>
+//    * Say you have the same queue name bound into two servers. The routing will load balance between
+//    * these two servers. This will eventually send more messages to one server than the other
+//    * (depending if you are using multi-thread), and not lose messages.
+//    */
+//   private Binding getNextBinding(final ServerMessage message,
+//                                  final SimpleString routingName,
+//                                  final List<Binding> bindingsNotOrdered) {
+//      Integer ipos = routingNamePositions.get(routingName);
+//
+//      int pos = ipos != null ? ipos : 0;
+//
+//      System.out.println("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOO started position:" + pos );
+//      int oldPos = pos;
+//      Binding b = bindingsNotOrdered.get(pos);
+//
+//      if(pos == 2) {
+//         pos = 1;
+//      }
+//      List<Binding> bindings = reorderBindingsByCreditsOwned(bindingsNotOrdered);
+//
+////      //todo jondruse recount pos
+////      if(bindingsNotOrdered.size() > pos) {
+////         if (pos < bindings.size() - 1) {
+////            b = bindings.remove(pos);
+////            bindings.add(pos+1,b);
+//////            System.out.println("the same,the same,the same,the same,the same,the same,the same");
+////         } else {
+////            b = bindings.remove(pos);
+////            bindings.add(0, b);
+////         }
+////         pos = bindings.indexOf(b);
+////         if(oldPos != pos) {
+////            System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX   changed postion from "+oldPos+ " to " + pos);
+////         } else {
+////            System.out.println("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY  NOTchanged postion from "+oldPos+ " to " + pos);
+////         }
+////       }
+//
+//      int length = bindings.size();
+//
+//      int startPos = pos;
+//
+//      Binding theBinding = null;
+//
+//      int lastLowPriorityBinding = -1;
+//
+//      while (true) {
+//         Binding binding;
+//         try {
+//            binding = bindings.get(pos);
+//         } catch (IndexOutOfBoundsException e) {
+//            // This can occur if binding is removed while in route
+//            if (!bindings.isEmpty()) {
+//               pos = 0;
+//               startPos = 0;
+//               length = bindings.size();
+//
+//               continue;
+//            } else {
+//               break;
+//            }
+//         }
+//
+//         Filter filter = binding.getFilter();
+//
+//         if (filter == null || filter.match(message)) {
+//            // bindings.length == 1 ==> only a local queue so we don't check for matching consumers (it's an
+//            // unnecessary overhead)
+//            if (length == 1 || (binding.isConnected() && (messageLoadBalancingType.equals(MessageLoadBalancingType.STRICT) || binding.isHighAcceptPriority(message)))) {
+//               theBinding = binding;
+//
+//               pos = incrementPos(pos, length);
+//
+//               break;
+//            } else {
+//               //https://issues.jboss.org/browse/HORNETQ-1254 When !routeWhenNoConsumers,
+//               // the localQueue should always have the priority over the secondary bindings
+//               if (lastLowPriorityBinding == -1 || messageLoadBalancingType.equals(MessageLoadBalancingType.ON_DEMAND) && binding instanceof LocalQueueBinding) {
+//                  lastLowPriorityBinding = pos;
+//               }
+//            }
+//         }
+//
+//         pos = incrementPos(pos, length);
+//
+//         if (pos == startPos) {
+//
+//            // if no bindings were found, we will apply a secondary level on the routing logic
+//            if (lastLowPriorityBinding != -1) {
+//               try {
+//                  theBinding = bindings.get(lastLowPriorityBinding);
+//               } catch (IndexOutOfBoundsException e) {
+//                  // This can occur if binding is removed while in route
+//                  if (!bindings.isEmpty()) {
+//                     pos = 0;
+//
+//                     lastLowPriorityBinding = -1;
+//
+//                     continue;
+//                  } else {
+//                     break;
+//                  }
+//               }
+//
+//               pos = incrementPos(lastLowPriorityBinding, length);
+//            }
+//            break;
+//         }
+//      }
+//      if (pos != startPos) {
+//         routingNamePositions.put(routingName, pos);
+//      }
+//
+//      if (messageLoadBalancingType.equals(MessageLoadBalancingType.OFF) && theBinding instanceof RemoteQueueBinding) {
+//         theBinding = getNextBinding(message, routingName, bindings);
+//      }
+//      return theBinding;
+//   }
 
    private void routeUsingStrictOrdering(final ServerMessage message,
                                          final RoutingContext context,

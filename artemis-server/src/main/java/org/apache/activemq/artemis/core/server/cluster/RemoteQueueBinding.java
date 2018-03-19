@@ -17,6 +17,7 @@
 package org.apache.activemq.artemis.core.server.cluster;
 
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.api.core.client.AvailablePermitsCallback;
 import org.apache.activemq.artemis.core.postoffice.Binding;
 import org.apache.activemq.artemis.core.postoffice.QueueBinding;
 
@@ -36,5 +37,5 @@ public interface RemoteQueueBinding extends QueueBinding {
 
    long getRemoteQueueID();
 
-   void setAvailablePermits(int availablePermits);
+   void setAvailablePermitsCallback(AvailablePermitsCallback callback);
 }
