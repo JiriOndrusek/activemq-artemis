@@ -16,6 +16,8 @@
  */
 package org.apache.activemq.artemis.core.client.impl;
 
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
@@ -53,6 +55,8 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
 
    private AvailablePermitsCallback availablePermitsCallback;
 
+   ScheduledExecutorService execService  =   Executors.newScheduledThreadPool(5);
+
    public ClientProducerCreditsImpl(final ClientSessionInternal session,
                                     final SimpleString address,
                                     final int windowSize,
@@ -82,10 +86,15 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
    }
 
    @Override
-   public void acquireCredits(final int credits) throws ActiveMQException {
+   public boolean acquireCredits(final int credits, Runnable send) throws ActiveMQException {
       checkCredits(credits);
 
       boolean tryAcquire;
+
+      if (availablePermitsCallback != null) {
+         System.out.println(">>>>>>>> acquired:" + credits);
+         availablePermitsCallback.callback(null, credits);
+      }
 
       synchronized (this) {
          tryAcquire = semaphore.tryAcquire(credits);
@@ -94,17 +103,28 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
       if (!tryAcquire) {
          if (!closed) {
             this.blocked = true;
-            try {
-               while (!semaphore.tryAcquire(credits, 10, TimeUnit.SECONDS)) {
-                  // I'm using string concatenation here in case address is null
-                  // better getting a "null" string than a NPE
-                  ActiveMQClientLogger.LOGGER.outOfCreditOnFlowControl("" + address);
+
+            if(false) {
+               execService.schedule(new ScheduledUnlock(credits, send), 10, TimeUnit.SECONDS);
+            } else {
+
+               System.out.println("-----------------locked-----------------");
+               if (availablePermitsCallback != null) {
+                  availablePermitsCallback.callback(null, credits);
                }
-            } catch (InterruptedException interrupted) {
-               Thread.currentThread().interrupt();
-               throw new ActiveMQInterruptedException(interrupted);
-            } finally {
-               this.blocked = false;
+               try {
+                  while (!semaphore.tryAcquire(credits, 10, TimeUnit.SECONDS)) {
+                     // I'm using string concatenation here in case address is null
+                     // better getting a "null" string than a NPE
+                     ActiveMQClientLogger.LOGGER.outOfCreditOnFlowControl("" + address);
+                  }
+                  System.out.println("---------------unlocked-----------------");
+               } catch (InterruptedException interrupted) {
+                  Thread.currentThread().interrupt();
+                  throw new ActiveMQInterruptedException(interrupted);
+               } finally {
+                  this.blocked = false;
+               }
             }
          }
       }
@@ -127,10 +147,8 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
          }
       }
 
-      if (availablePermitsCallback != null) {
-         availablePermitsCallback.callback(null, credits);
-      }
 
+      return tryAcquire;
    }
 
    @Override
@@ -144,14 +162,16 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
 
    @Override
    public void receiveCredits(final int credits) {
+      System.out.println("<<<<<<< received:" + credits);
+      if (availablePermitsCallback != null) {
+         availablePermitsCallback.callback(null, 0-credits);
+      }
       synchronized (this) {
          arriving -= credits;
       }
 
       semaphore.release(credits);
-      if (availablePermitsCallback != null) {
-         availablePermitsCallback.callback(null, semaphore.availablePermits());
-      }
+
    }
 
    @Override
@@ -228,5 +248,34 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
 
    private void requestCredits(final int credits) {
       session.sendProducerCreditsMessage(credits, address);
+   }
+
+   private class ScheduledUnlock implements Runnable {
+
+      final int credits;
+      final Runnable send;
+
+      public ScheduledUnlock(int credits, Runnable send) {
+         this.credits = credits;
+         this.send = send;
+      }
+
+      @Override
+      public void run() {
+         if(!semaphore.tryAcquire(credits)) {
+            // I'm using string concatenation here in case address is null
+            // better getting a "null" string than a NPE
+            ActiveMQClientLogger.LOGGER.outOfCreditOnFlowControl("" + address);
+
+            execService.schedule(this, 10, TimeUnit.SECONDS);
+         }  else {
+            blocked = false;
+            send.run();
+            if(availablePermitsCallback != null) {
+               availablePermitsCallback.setLocked(false);
+            }
+            System.out.println("---------------unlocked-----------------");
+         }
+      }
    }
 }

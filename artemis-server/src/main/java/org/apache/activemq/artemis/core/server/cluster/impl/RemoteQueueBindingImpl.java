@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.api.core.client.AvailablePermitsCallback;
 import org.apache.activemq.artemis.core.filter.Filter;
 import org.apache.activemq.artemis.core.filter.impl.FilterImpl;
 import org.apache.activemq.artemis.core.message.impl.MessageImpl;
@@ -66,7 +67,7 @@ public class RemoteQueueBindingImpl implements RemoteQueueBinding {
 
    private boolean connected = true;
 
-   int availablePermits = -1;
+   RemoteBindingCallback ownedCredits = new RemoteBindingCallback(this);
 
    public RemoteQueueBindingImpl(final long id,
                                  final SimpleString address,
@@ -98,12 +99,25 @@ public class RemoteQueueBindingImpl implements RemoteQueueBinding {
 
    @Override
    public void setAvailablePermits(int availablePermits) {
-      this.availablePermits = availablePermits;
+      if(ownedCredits != null) {
+
+      }
    }
 
    @Override
    public int getAvailablePermits() {
-      return availablePermits;
+      if(ownedCredits != null) {
+         return ownedCredits.getOwnedCredits();
+      }
+      return -1;
+   }
+
+   @Override
+   public boolean isLocked() {
+      if(ownedCredits != null) {
+         return ownedCredits.isLocked();
+      }
+      return false;
    }
 
    @Override
@@ -190,17 +204,15 @@ public class RemoteQueueBindingImpl implements RemoteQueueBinding {
 
       List<Queue> durableQueuesOnContext = context.getDurableQueues(storeAndForwardQueue.getAddress());
 
-
-
       if (!durableQueuesOnContext.contains(storeAndForwardQueue)) {
          SimpleString address;
          // There can be many remote bindings for the same node, we only want to add the message once to
          // the s & f queue for that node
          context.addQueue(storeAndForwardQueue.getAddress(), storeAndForwardQueue);
-
-         //todo jondruse
-         context.setBindingCallback(new RemoteBindingCallback(this));
       }
+
+      //todo jondruse
+      context.setBindingCallback(ownedCredits);
    }
 
    @Override

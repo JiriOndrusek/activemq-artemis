@@ -542,7 +542,15 @@ public class BridgeImpl implements Bridge, SessionFailureListener, SendAcknowled
          return HandleStatus.NO_MATCH;
       }
 
+      if(ref.getBindingCallback().isLocked()) {
+         return HandleStatus.BUSY;
+      }
+
       synchronized (this) {
+         if(ref.getBindingCallback() != null && ref.getBindingCallback().isLocked()) {
+            return HandleStatus.BUSY;
+         }
+
          if (!active || !session.isWritable(this)) {
             if (logger.isDebugEnabled()) {
                logger.debug(this + "::Ignoring reference on bridge as it is set to inactive ref=" + ref);

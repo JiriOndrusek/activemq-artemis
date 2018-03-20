@@ -313,10 +313,16 @@ public final class BindingsImpl implements Bindings {
 
    List<Binding> reorderBindingsByCreditsOwned(List<Binding> bindings)
    {
-//      System.out.println(":::::::::::::::::::::::::::: " + bindings);
-//      Collections.sort(bindings, (b1, b2) -> -1*Integer.compare(b1.getAvailablePermits(), b2.getAvailablePermits()));
+      List<Integer> owned = new ArrayList<>();
+      for(Binding b: bindings) {
+         owned.add(b.getAvailablePermits());
+      }
+      System.out.println("current owned credits:" + owned);
 
-//      Collections.reverse(bindings);
+//      System.out.println(":::::::::::::::::::::::::::: " + bindings);
+      Collections.sort(bindings, (b1, b2) -> -1*Integer.compare(b1.getAvailablePermits(), b2.getAvailablePermits()));
+
+      Collections.reverse(bindings);
 
 
       return bindings;
@@ -337,32 +343,29 @@ public final class BindingsImpl implements Bindings {
 
       int pos = ipos != null ? ipos : 0;
 
-      System.out.println("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOO started position:" + pos );
+//      System.out.println("OOOOOOOOOOOOOOOOOOOOOOOOOOOOOO started position:" + pos );
       int oldPos = pos;
       Binding b = bindingsNotOrdered.get(pos);
 
-      if(pos == 2) {
-         pos = 1;
-      }
       List<Binding> bindings = reorderBindingsByCreditsOwned(bindingsNotOrdered);
 
-//      //todo jondruse recount pos
-//      if(bindingsNotOrdered.size() > pos) {
-//         if (pos < bindings.size() - 1) {
-//            b = bindings.remove(pos);
-//            bindings.add(pos+1,b);
-////            System.out.println("the same,the same,the same,the same,the same,the same,the same");
-//         } else {
-//            b = bindings.remove(pos);
-//            bindings.add(0, b);
-//         }
-//         pos = bindings.indexOf(b);
+      //todo jondruse recount pos
+      if(bindingsNotOrdered.size() > pos) {
+         if (pos < bindings.size() - 1) {
+            b = bindings.remove(pos);
+            bindings.add(pos+1,b);
+//            System.out.println("the same,the same,the same,the same,the same,the same,the same");
+         } else {
+            b = bindings.remove(pos);
+            bindings.add(0, b);
+         }
+         pos = bindings.indexOf(b);
 //         if(oldPos != pos) {
 //            System.out.println("XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX   changed postion from "+oldPos+ " to " + pos);
 //         } else {
 //            System.out.println("YYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY  NOTchanged postion from "+oldPos+ " to " + pos);
 //         }
-//       }
+       }
 
       int length = bindings.size();
 
@@ -389,9 +392,12 @@ public final class BindingsImpl implements Bindings {
             }
          }
 
+
+
          Filter filter = binding.getFilter();
 
-         if (filter == null || filter.match(message)) {
+//         if (filter == null || filter.match(message)) {
+         if (!binding.isLocked() && (filter == null || filter.match(message))) {
             // bindings.length == 1 ==> only a local queue so we don't check for matching consumers (it's an
             // unnecessary overhead)
             if (length == 1 || (binding.isConnected() && (messageLoadBalancingType.equals(MessageLoadBalancingType.STRICT) || binding.isHighAcceptPriority(message)))) {

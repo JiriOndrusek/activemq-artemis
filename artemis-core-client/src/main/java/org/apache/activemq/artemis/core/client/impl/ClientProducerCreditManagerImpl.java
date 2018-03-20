@@ -171,7 +171,8 @@ public class ClientProducerCreditManagerImpl implements ClientProducerCreditMana
       static ClientProducerCreditsNoFlowControl instance = new ClientProducerCreditsNoFlowControl();
 
       @Override
-      public void acquireCredits(int credits) {
+      public boolean acquireCredits(int credits, Runnable send) {
+         return true;
       }
 
       @Override

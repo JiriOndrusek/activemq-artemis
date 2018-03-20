@@ -653,13 +653,14 @@ public final class ChannelImpl implements Channel {
    private void clearUpTo(final int lastReceivedCommandID) {
       final int numberToClear = 1 + lastReceivedCommandID - firstStoredCommandID;
 
-      if (logger.isTraceEnabled()) {
-         logger.trace("ChannelImpl::clearUpTo lastReceived commandID=" + lastReceivedCommandID +
+//      if (logger.isTraceEnabled()) {
+         logger.info("ChannelImpl::clearUpTo lastReceived commandID=" + lastReceivedCommandID +
                          " first commandID=" + firstStoredCommandID +
                          " number to clear " + numberToClear);
-      }
+//      }
 
       for (int i = 0; i < numberToClear; i++) {
+         //tofo jondruse (vycistit jen ty potvrzene pro node)
          final Packet packet = resendCache.poll();
 
          if (packet == null) {

@@ -284,9 +284,20 @@ public class ClientProducerImpl implements ClientProducerInternal {
 
       int creditSize = sessionContext.getCreditsOnSendingFull(msgI);
 
-      theCredits.acquireCredits(creditSize);
+      //todo jondruse
+      if(theCredits.acquireCredits(creditSize, () -> {
+         try {
+            sessionContext.sendFullMessage(msgI, sendBlocking, handler, address);
+         } catch (ActiveMQException e) {
+            e.printStackTrace();
+         }
+      })) {
+         sessionContext.sendFullMessage(msgI, sendBlocking, handler, address);
+      }
 
-      sessionContext.sendFullMessage(msgI, sendBlocking, handler, address);
+
+
+
    }
 
    private void checkClosed() throws ActiveMQException {
@@ -337,7 +348,7 @@ public class ClientProducerImpl implements ClientProducerInternal {
       // On the case of large messages we tried to send credits before but we would starve otherwise
       // we may find a way to improve the logic and always acquire the credits before
       // but that's the way it's been tested and been working ATM
-      credits.acquireCredits(creditsUsed);
+      credits.acquireCredits(creditsUsed, null);
    }
 
    /**
@@ -380,7 +391,7 @@ public class ClientProducerImpl implements ClientProducerInternal {
 
             int creditsUsed = sessionContext.sendServerLargeMessageChunk(msgI, -1, sendBlocking, lastChunk, bodyBuffer.toByteBuffer().array(), messageHandler);
 
-            credits.acquireCredits(creditsUsed);
+            credits.acquireCredits(creditsUsed, null);
          }
       } finally {
          context.close();
@@ -488,7 +499,7 @@ public class ClientProducerImpl implements ClientProducerInternal {
                   sendInitialLargeMessageHeader(msgI, credits);
                }
                int creditsSent = sessionContext.sendLargeMessageChunk(msgI, messageSize.get(), sendBlocking, true, buff, reconnectID, handler);
-               credits.acquireCredits(creditsSent);
+               credits.acquireCredits(creditsSent, null);
             }
          } else {
             if (!headerSent) {
@@ -497,7 +508,7 @@ public class ClientProducerImpl implements ClientProducerInternal {
             }
 
             int creditsSent = sessionContext.sendLargeMessageChunk(msgI, messageSize.get(), sendBlocking, false, buff, reconnectID, handler);
-            credits.acquireCredits(creditsSent);
+            credits.acquireCredits(creditsSent, null);
          }
       }
 
