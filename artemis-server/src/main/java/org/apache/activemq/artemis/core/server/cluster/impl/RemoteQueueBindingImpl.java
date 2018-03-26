@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.activemq.artemis.api.core.ActiveMQException;
 import org.apache.activemq.artemis.api.core.SimpleString;
 import org.apache.activemq.artemis.api.core.client.AvailablePermitsCallback;
 import org.apache.activemq.artemis.core.filter.Filter;
@@ -103,7 +104,21 @@ public class RemoteQueueBindingImpl implements RemoteQueueBinding {
    }
 
    @Override
-   public boolean isLocked() {
+   public boolean isLocked(ServerMessage serverMessage) {
+      if(permitsCallback != null && permitsCallback.getClientProducerCredits() != null) {
+//         MessageInternal msgI = (MessageInternal) serverMessage;
+         int credits = serverMessage.getEncodeSize();
+         try {
+            if(!permitsCallback.getClientProducerCredits().isBlocked()) {
+               boolean ret = !permitsCallback.getClientProducerCredits().acquireCredits(credits);
+               return  ret;
+            }
+         } catch (ActiveMQException e) {
+            System.out.println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!1");
+            e.printStackTrace();
+         }
+      }
+
       if(permitsCallback != null) {
          return permitsCallback.isLocked();
       }

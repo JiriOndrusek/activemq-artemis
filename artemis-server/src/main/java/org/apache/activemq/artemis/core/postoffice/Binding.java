@@ -73,7 +73,7 @@ public interface Binding extends UnproposalListener {
 
    boolean isConnected();
 
-   default boolean isLocked() {
+   default boolean isLocked(ServerMessage serverMessage) {
       return false;
    }
 }

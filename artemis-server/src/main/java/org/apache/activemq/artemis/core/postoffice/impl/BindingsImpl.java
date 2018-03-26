@@ -21,16 +21,17 @@ import java.io.StringWriter;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
+import org.apache.activemq.artemis.api.core.ActiveMQInterruptedException;
 import org.apache.activemq.artemis.api.core.Message;
 import org.apache.activemq.artemis.api.core.SimpleString;
-import org.apache.activemq.artemis.core.filter.Filter;
+import org.apache.activemq.artemis.core.filter.Filter;   
 import org.apache.activemq.artemis.core.message.impl.MessageImpl;
 import org.apache.activemq.artemis.core.paging.PagingStore;
 import org.apache.activemq.artemis.core.postoffice.Binding;
@@ -311,16 +312,18 @@ public final class BindingsImpl implements Bindings {
       return "BindingsImpl [name=" + name + "]";
    }
 
-   List<Binding> reorderBindingsByCreditsOwned(List<Binding> bindings)
-   {
-//      System.out.println(":::::::::::::::::::::::::::: " + bindings);
-//      Collections.sort(bindings, (b1, b2) -> -1*Integer.compare(b1.getAvailablePermits(), b2.getAvailablePermits()));
-
+//   List<Binding> reorderBindingsByCreditsOwned(List<Binding> bindings)
+//   {
+////      System.out.println(":::::::::::::::::::::::::::: " + bindings);
+//      Collections.sort(bindings, (b1, b2) -> {if(b1.isLocked() && !b2.isLocked()) return -1;
+//                                               if(!b1.isLocked() && b2.isLocked()) return 1;
+//                                                return 0;} );
+//
 //      Collections.reverse(bindings);
-
-
-      return bindings;
-   }
+//
+//
+//      return bindings;
+//   }
 
    /**
     * This code has a race on the assigned value to routing names.
@@ -332,10 +335,34 @@ public final class BindingsImpl implements Bindings {
     */
    private Binding getNextBinding(final ServerMessage message,
                                   final SimpleString routingName,
+//                                  final List<Binding> bindingsNotOrdered) {
                                   final List<Binding> bindings) {
       Integer ipos = routingNamePositions.get(routingName);
 
       int pos = ipos != null ? ipos : 0;
+
+//      int oldPos = pos;
+//      Binding b = bindingsNotOrdered.get(pos);
+//
+//      List<Binding> bindings = reorderBindingsByCreditsOwned(bindingsNotOrdered);
+//
+//      if(bindingsNotOrdered.size() > pos) {
+//         if (pos < bindings.size() - 1) {
+//            b = bindings.remove(pos);
+//            bindings.add(pos + 1, b);
+////               System.out.println("the same,the same,the same,the same,the same,the same,the same");
+//         } else {
+//            b = bindings.remove(pos);
+//            bindings.add(0, b);
+//         }
+//         pos = bindings.indexOf(b);
+//      }
+//
+//     for(Binding bi : bindings) {
+//        if(bi.isLocked()) {
+//           System.out.println("changed position");
+//        }
+//     }
 
       int length = bindings.size();
 
@@ -344,6 +371,8 @@ public final class BindingsImpl implements Bindings {
       Binding theBinding = null;
 
       int lastLowPriorityBinding = -1;
+
+      boolean allLocked = false;
 
       while (true) {
          Binding binding;
@@ -363,16 +392,25 @@ public final class BindingsImpl implements Bindings {
          }
 
          Filter filter = binding.getFilter();
+         LinkedHashMap<Integer, Binding> lockedBidings = new LinkedHashMap<>();
 
          if (filter == null || filter.match(message)) {
             // bindings.length == 1 ==> only a local queue so we don't check for matching consumers (it's an
             // unnecessary overhead)
-            if (length == 1 || (!binding.isLocked() && binding.isConnected() && (messageLoadBalancingType.equals(MessageLoadBalancingType.STRICT) || binding.isHighAcceptPriority(message)))) {
+            if (length == 1 || (binding.isConnected() && (messageLoadBalancingType.equals(MessageLoadBalancingType.STRICT) || binding.isHighAcceptPriority(message)))) {
                theBinding = binding;
 
-               pos = incrementPos(pos, length);
+               if(!binding.isLocked(message)) {
+                  System.out.println("-unlocked "+ binding.getUniqueName());
+                  allLocked = false;
+                  pos = incrementPos(pos, length);
 
-               break;
+                  break;
+               } else {
+                  System.out.println("-locked "+ binding.getUniqueName());
+                  allLocked = true;
+                  lockedBidings.put(pos, binding);
+               }
             } else {
                //https://issues.jboss.org/browse/HORNETQ-1254 When !routeWhenNoConsumers,
                // the localQueue should always have the priority over the secondary bindings
@@ -384,7 +422,43 @@ public final class BindingsImpl implements Bindings {
 
          pos = incrementPos(pos, length);
 
-         if (pos == startPos) {
+         int i = 0;
+
+         if(allLocked  && pos == startPos) {
+            boolean b = false;
+            while (true) {
+
+               try {
+
+                  Thread.sleep(500);
+i++;
+//                  System.out.println("------------wainting ");
+                  for (Map.Entry<Integer, Binding> e : lockedBidings.entrySet()) {
+                     if (!e.getValue().isLocked(message)) {
+                        pos = incrementPos(e.getKey(), length);
+                        b = true;
+                        break;
+                     }
+                  }
+
+                  if (i > 20 || b) {
+                     break;
+                  }
+               } catch (InterruptedException interrupted) {
+                  Thread.currentThread().interrupt();
+                  throw new ActiveMQInterruptedException(interrupted);
+               }
+
+               if (b) {
+                  break;
+               }
+            }
+            if (b) {
+               break;
+            }
+         }
+
+         if (!allLocked && pos == startPos) {
 
             // if no bindings were found, we will apply a secondary level on the routing logic
             if (lastLowPriorityBinding != -1) {
@@ -408,13 +482,18 @@ public final class BindingsImpl implements Bindings {
             break;
          }
       }
-      if (pos != startPos) {
+  if (pos != startPos) {
          routingNamePositions.put(routingName, pos);
       }
 
       if (messageLoadBalancingType.equals(MessageLoadBalancingType.OFF) && theBinding instanceof RemoteQueueBinding) {
          theBinding = getNextBinding(message, routingName, bindings);
       }
+
+      if(theBinding != null) {
+         System.out.println("-executing " + theBinding.getUniqueName());
+      }
+
       return theBinding;
    }
 

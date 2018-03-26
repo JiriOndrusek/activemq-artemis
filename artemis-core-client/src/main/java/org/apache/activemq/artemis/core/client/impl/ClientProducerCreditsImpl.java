@@ -100,19 +100,20 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
          if (!tryAcquire) {
             if (!closed) {
                this.blocked = true;
+               if (availablePermitsCallback != null) {
+                  try {
+                     while (!semaphore.tryAcquire(credits, 10, TimeUnit.SECONDS)) {
+                        // I'm using string concatenation here in case address is null
+                        // better getting a "null" string than a NPE
+                        ActiveMQClientLogger.LOGGER.outOfCreditOnFlowControl("" + address);
+                     }
+                  } catch (InterruptedException interrupted) {
+                     Thread.currentThread().interrupt();
+                     throw new ActiveMQInterruptedException(interrupted);
+                  } finally {
+                     this.blocked = false;
 
-               try {
-                  while (!semaphore.tryAcquire(credits, 10, TimeUnit.SECONDS)) {
-                     // I'm using string concatenation here in case address is null
-                     // better getting a "null" string than a NPE
-                     ActiveMQClientLogger.LOGGER.outOfCreditOnFlowControl("" + address);
                   }
-               } catch (InterruptedException interrupted) {
-                  Thread.currentThread().interrupt();
-                  throw new ActiveMQInterruptedException(interrupted);
-               } finally {
-                  this.blocked = false;
-
                }
             }
          }
@@ -157,8 +158,15 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
       synchronized (this) {
          arriving -= credits;
       }
+      System.out.println("receive");
 
       semaphore.release(credits);
+
+      if (availablePermitsCallback != null) {
+         //availablePermitsCallback.callback(null, false);
+         blocked = false;
+      }
+
    }
 
    @Override

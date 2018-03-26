@@ -242,6 +242,9 @@ public class ClientProducerImpl implements ClientProducerInternal {
 
          // Anonymous
          theCredits = session.getCredits(sendingAddress, true, availablePermitsCallback);
+         if(availablePermitsCallback != null) {
+            availablePermitsCallback.setClientProducerCredits(theCredits);
+         }
 
          if (rateLimiter != null) {
             // Rate flow control
@@ -282,11 +285,13 @@ public class ClientProducerImpl implements ClientProducerInternal {
 
       logger.tracef("sendRegularMessage::%s, Blocking=%s", msgI, sendBlocking);
 
-      int creditSize = sessionContext.getCreditsOnSendingFull(msgI);
+//      int creditSize = sessionContext.getCreditsOnSendingFull(msgI);
 
-      if(theCredits.acquireCredits(creditSize)) {
+//      if(theCredits.acquireCredits(creditSize)) {
          sessionContext.sendFullMessage(msgI, sendBlocking, handler, address);
-      }
+//      } else {
+//         System.out.println("************* ignored message ***************8");
+//      }
    }
 
    private void checkClosed() throws ActiveMQException {
