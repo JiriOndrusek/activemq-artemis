@@ -158,7 +158,7 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
       synchronized (this) {
          arriving -= credits;
       }
-      System.out.println("receive");
+      System.out.println("receive:"+credits);
 
       semaphore.release(credits);
 
@@ -231,11 +231,13 @@ public class ClientProducerCreditsImpl implements ClientProducerCredits {
       }
 
       if (toRequest != -1) {
+         System.out.println("has: "+semaphore.availablePermits() +", arriing:"+arriving+", needed"+needed);
          requestCredits(toRequest);
       }
    }
 
    private void requestCredits(final int credits) {
+      System.out.println("requesting:"+credits);
       session.sendProducerCreditsMessage(credits, address);
    }
 }

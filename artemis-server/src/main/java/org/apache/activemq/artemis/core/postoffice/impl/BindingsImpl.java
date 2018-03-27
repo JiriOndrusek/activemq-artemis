@@ -373,6 +373,7 @@ public final class BindingsImpl implements Bindings {
       int lastLowPriorityBinding = -1;
 
       boolean allLocked = false;
+      LinkedHashMap<Integer, Binding> lockedBidings = new LinkedHashMap<>();
 
       while (true) {
          Binding binding;
@@ -392,7 +393,7 @@ public final class BindingsImpl implements Bindings {
          }
 
          Filter filter = binding.getFilter();
-         LinkedHashMap<Integer, Binding> lockedBidings = new LinkedHashMap<>();
+
 
          if (filter == null || filter.match(message)) {
             // bindings.length == 1 ==> only a local queue so we don't check for matching consumers (it's an
@@ -429,19 +430,25 @@ public final class BindingsImpl implements Bindings {
             while (true) {
 
                try {
-
-                  Thread.sleep(500);
+                  System.out.println("waiting "+i);
+                  Thread.sleep(100);
 i++;
 //                  System.out.println("------------wainting ");
                   for (Map.Entry<Integer, Binding> e : lockedBidings.entrySet()) {
                      if (!e.getValue().isLocked(message)) {
-                        pos = incrementPos(e.getKey(), length);
+//                        pos = incrementPos(e.getKey(), length);
                         b = true;
+                        pos = e.getKey();
+                        theBinding = e.getValue();
+                        System.out.println("-unlocked after wait: "+ binding.getUniqueName());
                         break;
+                     } else {
+                        System.out.println("-locked after wait: "+ binding.getUniqueName());
                      }
                   }
 
-                  if (i > 20 || b) {
+                  if (b) {
+//                  if (i > 20 || b) {
                      break;
                   }
                } catch (InterruptedException interrupted) {
