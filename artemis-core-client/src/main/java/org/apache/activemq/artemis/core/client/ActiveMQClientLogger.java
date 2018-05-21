@@ -442,4 +442,8 @@ public interface ActiveMQClientLogger extends BasicLogger {
    @Message(id = 214029, value = "Unexpected response from HTTP server: %s")
    void unexpectedResponseFromHttpServer(Object response);
 
+   @LogMessage(level = Logger.Level.INFO)
+   @Message(id = 214030, value = "Connection failure has been detected: {0} [code={1}]", format = Message.Format.MESSAGE_FORMAT)
+   void connectionFailureDetectedInfo(String message, ActiveMQExceptionType type);
+
 }

@@ -120,6 +120,7 @@ public interface RemotingConnection extends BufferHandler {
     */
    ActiveMQBuffer createTransportBuffer(int size);
 
+
    /**
     * called when the underlying connection fails.
     *
@@ -130,10 +131,31 @@ public interface RemotingConnection extends BufferHandler {
    /**
     * called when the underlying connection fails.
     *
+    * @param me the     exception that caused the failure
+    * @param showAsInfo True, whe warning should be displayed as warning.
+    */
+   default void fail(ActiveMQException me, boolean showAsInfo) {
+      fail(me);
+   }
+
+   /**
+    * called when the underlying connection fails.
+    *
     * @param me                    the exception that caused the failure
     * @param scaleDownTargetNodeID the ID of the node where scale down is targeted
     */
    void fail(ActiveMQException me, String scaleDownTargetNodeID);
+
+   /**
+    * called when the underlying connection fails.
+    *
+    * @param me                    the exception that caused the failure
+    * @param scaleDownTargetNodeID the ID of the node where scale down is targeted
+    * @param showAsInfo True, whe warning should be displayed as warning.
+    */
+   default void fail(ActiveMQException me, String scaleDownTargetNodeID, boolean showAsInfo) {
+      fail(me, scaleDownTargetNodeID);
+   }
 
    /**
     * destroys this connection.
