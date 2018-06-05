@@ -2588,7 +2588,7 @@ public class ActiveMQServerImpl implements ActiveMQServer {
    }
 
    private JournalLoadInformation[] loadJournals() throws Exception {
-      JournalLoader journalLoader = activation.createJournalLoader(postOffice, pagingManager, storageManager, queueFactory, nodeManager, managementService, groupingHandler, configuration, parentServer);
+      JournalLoader journalLoader = activation.createJournalLoader(postOffice, pagingManager, storageManager, queueFactory, nodeManager, managementService, groupingHandler, configuration, parentServer, addressSettingsRepository);
 
       JournalLoadInformation[] journalInfo = new JournalLoadInformation[2];
 

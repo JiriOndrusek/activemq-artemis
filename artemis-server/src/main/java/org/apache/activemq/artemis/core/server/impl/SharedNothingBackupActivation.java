@@ -46,6 +46,8 @@ import org.apache.activemq.artemis.core.server.cluster.ha.ScaleDownPolicy;
 import org.apache.activemq.artemis.core.server.cluster.qourum.SharedNothingBackupQuorum;
 import org.apache.activemq.artemis.core.server.group.GroupingHandler;
 import org.apache.activemq.artemis.core.server.management.ManagementService;
+import org.apache.activemq.artemis.core.settings.HierarchicalRepository;
+import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
 import org.apache.activemq.artemis.utils.ReusableLatch;
 import org.jboss.logging.Logger;
 
@@ -404,11 +406,12 @@ public final class SharedNothingBackupActivation extends Activation {
                                             ManagementService managementService,
                                             GroupingHandler groupingHandler,
                                             Configuration configuration,
-                                            ActiveMQServer parentServer) throws ActiveMQException {
+                                            ActiveMQServer parentServer,
+                                            HierarchicalRepository<AddressSettings> addressSettingsRepository) throws ActiveMQException {
       if (replicaPolicy.getScaleDownPolicy() != null && replicaPolicy.getScaleDownPolicy().isEnabled()) {
-         return new BackupRecoveryJournalLoader(postOffice, pagingManager, storageManager, queueFactory, nodeManager, managementService, groupingHandler, configuration, parentServer, ScaleDownPolicy.getScaleDownConnector(replicaPolicy.getScaleDownPolicy(), activeMQServer), activeMQServer.getClusterManager().getClusterController());
+         return new BackupRecoveryJournalLoader(postOffice, pagingManager, storageManager, queueFactory, nodeManager, managementService, groupingHandler, configuration, parentServer, ScaleDownPolicy.getScaleDownConnector(replicaPolicy.getScaleDownPolicy(), activeMQServer), activeMQServer.getClusterManager().getClusterController(), addressSettingsRepository);
       } else {
-         return super.createJournalLoader(postOffice, pagingManager, storageManager, queueFactory, nodeManager, managementService, groupingHandler, configuration, parentServer);
+         return super.createJournalLoader(postOffice, pagingManager, storageManager, queueFactory, nodeManager, managementService, groupingHandler, configuration, parentServer, addressSettingsRepository);
       }
    }
 

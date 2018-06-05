@@ -32,6 +32,8 @@ import org.apache.activemq.artemis.core.server.cluster.ha.HAManager;
 import org.apache.activemq.artemis.core.server.cluster.ha.StandaloneHAManager;
 import org.apache.activemq.artemis.core.server.group.GroupingHandler;
 import org.apache.activemq.artemis.core.server.management.ManagementService;
+import org.apache.activemq.artemis.core.settings.HierarchicalRepository;
+import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
 import org.apache.activemq.artemis.spi.core.remoting.Acceptor;
 
 /**
@@ -100,8 +102,9 @@ public abstract class Activation implements Runnable {
                                             ManagementService managementService,
                                             GroupingHandler groupingHandler,
                                             Configuration configuration,
-                                            ActiveMQServer parentServer) throws ActiveMQException {
-      return new PostOfficeJournalLoader(postOffice, pagingManager, storageManager, queueFactory, nodeManager, managementService, groupingHandler, configuration);
+                                            ActiveMQServer parentServer,
+                                            HierarchicalRepository<AddressSettings> addressSettingsRepository) throws ActiveMQException {
+      return new PostOfficeJournalLoader(postOffice, pagingManager, storageManager, queueFactory, nodeManager, managementService, groupingHandler, configuration, addressSettingsRepository);
    }
 
    /*

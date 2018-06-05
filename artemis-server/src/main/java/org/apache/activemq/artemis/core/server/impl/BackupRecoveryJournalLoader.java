@@ -38,6 +38,8 @@ import org.apache.activemq.artemis.core.server.cluster.ActiveMQServerSideProtoco
 import org.apache.activemq.artemis.core.server.cluster.ClusterController;
 import org.apache.activemq.artemis.core.server.group.GroupingHandler;
 import org.apache.activemq.artemis.core.server.management.ManagementService;
+import org.apache.activemq.artemis.core.settings.HierarchicalRepository;
+import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
 import org.apache.activemq.artemis.core.transaction.ResourceManager;
 
 /*
@@ -60,9 +62,10 @@ public class BackupRecoveryJournalLoader extends PostOfficeJournalLoader {
                                       Configuration configuration,
                                       ActiveMQServer parentServer,
                                       ServerLocatorInternal locator,
-                                      ClusterController clusterController) {
+                                      ClusterController clusterController,
+                                      HierarchicalRepository<AddressSettings> addressSettingsRepository) {
 
-      super(postOffice, pagingManager, storageManager, queueFactory, nodeManager, managementService, groupingHandler, configuration);
+      super(postOffice, pagingManager, storageManager, queueFactory, nodeManager, managementService, groupingHandler, configuration, addressSettingsRepository);
       this.parentServer = parentServer;
       this.locator = locator;
       this.clusterController = clusterController;

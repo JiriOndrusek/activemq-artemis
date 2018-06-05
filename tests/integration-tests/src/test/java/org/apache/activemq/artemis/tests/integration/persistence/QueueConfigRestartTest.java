@@ -18,13 +18,21 @@ package org.apache.activemq.artemis.tests.integration.persistence;
 
 import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.api.core.SimpleString;
+import org.apache.activemq.artemis.core.config.StoreConfiguration;
+import org.apache.activemq.artemis.core.persistence.StorageManager;
+import org.apache.activemq.artemis.core.persistence.config.PersistedAddressSetting;
 import org.apache.activemq.artemis.core.postoffice.QueueBinding;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
-import org.apache.activemq.artemis.tests.util.ActiveMQTestBase;
+import org.apache.activemq.artemis.core.settings.impl.AddressFullMessagePolicy;
+import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
 import org.junit.Assert;
 import org.junit.Test;
+import org.junit.runners.Parameterized;
 
-public class QueueConfigRestartTest extends ActiveMQTestBase {
+import java.util.Arrays;
+import java.util.Collection;
+
+public class QueueConfigRestartTest extends StorageManagerTestBase {
 
    // Constants -----------------------------------------------------
 
@@ -34,7 +42,17 @@ public class QueueConfigRestartTest extends ActiveMQTestBase {
 
    // Static --------------------------------------------------------
 
+   @Parameterized.Parameters(name = "storeType={0}")
+   public static Collection<Object[]> data() {
+      Object[][] params = new Object[][]{{StoreConfiguration.StoreType.FILE}};
+      return Arrays.asList(params);
+   }
+
    // Constructors --------------------------------------------------
+
+   public QueueConfigRestartTest(StoreConfiguration.StoreType storeType) {
+      super(storeType);
+   }
 
    // Public --------------------------------------------------------
 
@@ -63,6 +81,13 @@ public class QueueConfigRestartTest extends ActiveMQTestBase {
 
    @Test
    public void testQueueConfigLastValueAndRestart() throws Exception {
+      //set lastValue = true into address settings accessible by journal
+      createStorage();
+      AddressSettings setting;
+      setting = new AddressSettings().setAddressFullMessagePolicy(AddressFullMessagePolicy.BLOCK).setDeadLetterAddress(new SimpleString("some-test")).setDefaultLastValueQueue(true);
+      addAddress(journal, "test.address", setting);
+      journal.stop();
+
       ActiveMQServer server = createServer(true);
 
       server.start();
@@ -127,11 +152,18 @@ public class QueueConfigRestartTest extends ActiveMQTestBase {
       QueueBinding queueBinding2 = (QueueBinding)server.getPostOffice().getBinding(queue);
       Assert.assertTrue(queueBinding2.getQueue().isPurgeOnNoConsumers());
    }
+
    // Package protected ---------------------------------------------
 
    // Protected -----------------------------------------------------
 
    // Private -------------------------------------------------------
+
+   private void addAddress(StorageManager journal1, String address, AddressSettings setting) throws Exception {
+      SimpleString str = new SimpleString(address);
+      PersistedAddressSetting persistedSetting = new PersistedAddressSetting(str, setting);
+      journal1.storeAddressSetting(persistedSetting);
+   }
 
    // Inner classes -------------------------------------------------
 

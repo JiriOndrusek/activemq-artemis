@@ -61,6 +61,8 @@ import org.apache.activemq.artemis.api.core.RoutingType;
 import org.apache.activemq.artemis.core.server.group.GroupingHandler;
 import org.apache.activemq.artemis.core.server.group.impl.GroupBinding;
 import org.apache.activemq.artemis.core.server.management.ManagementService;
+import org.apache.activemq.artemis.core.settings.HierarchicalRepository;
+import org.apache.activemq.artemis.core.settings.impl.AddressSettings;
 import org.apache.activemq.artemis.core.transaction.ResourceManager;
 import org.apache.activemq.artemis.core.transaction.Transaction;
 import org.apache.activemq.artemis.core.transaction.impl.TransactionImpl;
@@ -78,6 +80,7 @@ public class PostOfficeJournalLoader implements JournalLoader {
    private final ManagementService managementService;
    private final GroupingHandler groupingHandler;
    private final Configuration configuration;
+   private final HierarchicalRepository<AddressSettings> addressSettingsRepository;
    private Map<Long, Queue> queues;
 
    public PostOfficeJournalLoader(PostOffice postOffice,
@@ -87,7 +90,8 @@ public class PostOfficeJournalLoader implements JournalLoader {
                                   NodeManager nodeManager,
                                   ManagementService managementService,
                                   GroupingHandler groupingHandler,
-                                  Configuration configuration) {
+                                  Configuration configuration,
+                                  HierarchicalRepository<AddressSettings> addressSettingsRepository) {
 
       this.postOffice = postOffice;
       this.pagingManager = pagingManager;
@@ -97,6 +101,7 @@ public class PostOfficeJournalLoader implements JournalLoader {
       this.managementService = managementService;
       this.groupingHandler = groupingHandler;
       this.configuration = configuration;
+      this.addressSettingsRepository = addressSettingsRepository;
       queues = new HashMap<>();
    }
 
@@ -108,9 +113,10 @@ public class PostOfficeJournalLoader implements JournalLoader {
                                   ManagementService managementService,
                                   GroupingHandler groupingHandler,
                                   Configuration configuration,
+                                  HierarchicalRepository<AddressSettings> addressSettingsRepository,
                                   Map<Long, Queue> queues) {
 
-      this(postOffice, pagingManager, storageManager, queueFactory, nodeManager, managementService, groupingHandler, configuration);
+      this(postOffice, pagingManager, storageManager, queueFactory, nodeManager, managementService, groupingHandler, configuration, addressSettingsRepository);
       this.queues = queues;
    }
 
@@ -144,6 +150,7 @@ public class PostOfficeJournalLoader implements JournalLoader {
          } else {
             queueConfigBuilder = QueueConfig.builderWith(queueBindingInfo.getId(), queueBindingInfo.getQueueName(), queueBindingInfo.getAddress());
          }
+         final  AddressSettings addressSettings = addressSettingsRepository.getMatch(queueBindingInfo.getAddress().toString());
          queueConfigBuilder.filter(filter).pagingManager(pagingManager)
             .user(queueBindingInfo.getUser())
             .durable(true)
@@ -153,7 +160,8 @@ public class PostOfficeJournalLoader implements JournalLoader {
             .maxConsumers(queueBindingInfo.getMaxConsumers())
             .exclusive(queueBindingInfo.isExclusive())
             .lastValue(queueBindingInfo.isLastValue())
-            .routingType(RoutingType.getType(queueBindingInfo.getRoutingType()));
+            .routingType(RoutingType.getType(queueBindingInfo.getRoutingType()))
+            .lastValue(addressSettings.isDefaultLastValueQueue());
          final Queue queue = queueFactory.createQueueWith(queueConfigBuilder.build());
          queue.setConsumersRefCount(new QueueManagerImpl(((PostOfficeImpl)postOffice).getServer(), queueBindingInfo.getQueueName()));
 
