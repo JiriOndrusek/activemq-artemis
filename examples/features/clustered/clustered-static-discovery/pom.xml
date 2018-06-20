@@ -80,30 +80,30 @@ under the License.
                      <javaOptions>-Djava.net.preferIPv4Stack=true</javaOptions>
                   </configuration>
                </execution>
-               <execution>
-                  <id>create2</id>
-                  <goals>
-                     <goal>create</goal>
-                  </goals>
-                  <configuration>
-                     <ignore>${noServer}</ignore>
-                     <instance>${basedir}/target/server2</instance>
-                     <configuration>${basedir}/target/classes/activemq/server2</configuration>
-                     <!-- this makes it easier in certain envs -->
-                     <javaOptions>-Djava.net.preferIPv4Stack=true</javaOptions>
-                  </configuration>
-               </execution>
-               <execution>
-                  <id>create3</id>
-                  <goals>
-                     <goal>create</goal>
-                  </goals>
-                  <configuration>
-                     <ignore>${noServer}</ignore>
-                     <instance>${basedir}/target/server3</instance>
-                     <configuration>${basedir}/target/classes/activemq/server3</configuration>
-                  </configuration>
-               </execution>
+               <!--<execution>-->
+                  <!--<id>create2</id>-->
+                  <!--<goals>-->
+                     <!--<goal>create</goal>-->
+                  <!--</goals>-->
+                  <!--<configuration>-->
+                     <!--<ignore>${noServer}</ignore>-->
+                     <!--<instance>${basedir}/target/server2</instance>-->
+                     <!--<configuration>${basedir}/target/classes/activemq/server2</configuration>-->
+                     <!--&lt;!&ndash; this makes it easier in certain envs &ndash;&gt;-->
+                     <!--<javaOptions>-Djava.net.preferIPv4Stack=true</javaOptions>-->
+                  <!--</configuration>-->
+               <!--</execution>-->
+               <!--<execution>-->
+                  <!--<id>create3</id>-->
+                  <!--<goals>-->
+                     <!--<goal>create</goal>-->
+                  <!--</goals>-->
+                  <!--<configuration>-->
+                     <!--<ignore>${noServer}</ignore>-->
+                     <!--<instance>${basedir}/target/server3</instance>-->
+                     <!--<configuration>${basedir}/target/classes/activemq/server3</configuration>-->
+                  <!--</configuration>-->
+               <!--</execution>-->
                <execution>
                   <id>start0</id>
                   <goals>
@@ -136,38 +136,38 @@ under the License.
                      <name>server1</name>
                   </configuration>
                </execution>
-               <execution>
-                  <id>start2</id>
-                  <goals>
-                     <goal>cli</goal>
-                  </goals>
-                  <configuration>
-                     <ignore>${noServer}</ignore>
-                     <spawn>true</spawn>
-                     <location>${basedir}/target/server2</location>
-                     <testURI>tcp://localhost:61618</testURI>
-                     <args>
-                        <param>run</param>
-                     </args>
-                     <name>server2</name>
-                  </configuration>
-               </execution>
-               <execution>
-                  <id>start3</id>
-                  <goals>
-                     <goal>cli</goal>
-                  </goals>
-                  <configuration>
-                     <ignore>${noServer}</ignore>
-                     <spawn>true</spawn>
-                     <location>${basedir}/target/server3</location>
-                     <testURI>tcp://localhost:61619</testURI>
-                     <args>
-                        <param>run</param>
-                     </args>
-                     <name>server3</name>
-                  </configuration>
-               </execution>
+               <!--<execution>-->
+                  <!--<id>start2</id>-->
+                  <!--<goals>-->
+                     <!--<goal>cli</goal>-->
+                  <!--</goals>-->
+                  <!--<configuration>-->
+                     <!--<ignore>${noServer}</ignore>-->
+                     <!--<spawn>true</spawn>-->
+                     <!--<location>${basedir}/target/server2</location>-->
+                     <!--<testURI>tcp://localhost:61618</testURI>-->
+                     <!--<args>-->
+                        <!--<param>run</param>-->
+                     <!--</args>-->
+                     <!--<name>server2</name>-->
+                  <!--</configuration>-->
+               <!--</execution>-->
+               <!--<execution>-->
+                  <!--<id>start3</id>-->
+                  <!--<goals>-->
+                     <!--<goal>cli</goal>-->
+                  <!--</goals>-->
+                  <!--<configuration>-->
+                     <!--<ignore>${noServer}</ignore>-->
+                     <!--<spawn>true</spawn>-->
+                     <!--<location>${basedir}/target/server3</location>-->
+                     <!--<testURI>tcp://localhost:61619</testURI>-->
+                     <!--<args>-->
+                        <!--<param>run</param>-->
+                     <!--</args>-->
+                     <!--<name>server3</name>-->
+                  <!--</configuration>-->
+               <!--</execution>-->
                <execution>
                   <id>runClient</id>
                   <goals>

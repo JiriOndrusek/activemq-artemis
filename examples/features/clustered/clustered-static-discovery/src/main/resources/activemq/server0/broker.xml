@@ -40,14 +40,14 @@ under the License.
       <!-- Connectors -->
 
       <connectors>
-         <connector name="netty-connector">tcp://localhost:61616</connector>
+         <connector name="netty-connector">tcp://node1.domain:61616</connector>
          <!-- connector to the server1 -->
-         <connector name="server1-connector">tcp://localhost:61617</connector>
+         <connector name="server1-connector">tcp://node2.domain:61617?localAddress=dockerhost</connector>
       </connectors>
 
       <!-- Acceptors -->
       <acceptors>
-         <acceptor name="netty-acceptor">tcp://localhost:61616</acceptor>
+         <acceptor name="netty-acceptor">tcp://node1.domain:61616</acceptor>
       </acceptors>
 
       <cluster-connections>
@@ -58,7 +58,7 @@ under the License.
             <use-duplicate-detection>true</use-duplicate-detection>
             <message-load-balancing>STRICT</message-load-balancing>
             <max-hops>1</max-hops>
-            <static-connectors>
+            <static-connectors allow-direct-connections-only="true">
                <connector-ref>server1-connector</connector-ref>
             </static-connectors>
          </cluster-connection>
