@@ -49,6 +49,7 @@ import org.apache.activemq.artemis.core.postoffice.Binding;
 import org.apache.activemq.artemis.core.postoffice.Bindings;
 import org.apache.activemq.artemis.core.postoffice.PostOffice;
 import org.apache.activemq.artemis.core.postoffice.impl.PostOfficeImpl;
+import org.apache.activemq.artemis.core.remoting.impl.netty.TransportConstants;
 import org.apache.activemq.artemis.core.server.ActiveMQMessageBundle;
 import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.ActiveMQServerLogger;
@@ -152,7 +153,8 @@ public final class ClusterConnectionImpl implements ClusterConnection, AfterConn
 
    private final boolean allowDirectConnectionsOnly;
 
-   private final Set<TransportConfiguration> allowableConnections = new HashSet<>();
+   //default access modifier is used because of test, see {@link org.apache.activemq.artemis.core.server.cluster.impl.ClusterConnectionImplMockTest}
+   final Set<TransportConfiguration> allowableConnections = new HashSet<>();
 
    private final ClusterManager manager;
 
@@ -272,7 +274,12 @@ public final class ClusterConnectionImpl implements ClusterConnection, AfterConn
          // through a static list of connectors or broadcasting using UDP.
          if (allowDirectConnectionsOnly) {
             for (TransportConfiguration configuration : staticTranspConfigs) {
-               allowableConnections.add(configuration.newTransportConfig(TRANSPORT_CONFIG_NAME));
+               TransportConfiguration transportConfiguration = configuration.newTransportConfig(TRANSPORT_CONFIG_NAME);
+               //localAddress and localPort have  to be removed because of comparison in nodeUP method (issue ARTEMIS-1946)
+               //(opposing TransportConnection can not have local address of current node)
+               transportConfiguration.getParams().remove(TransportConstants.LOCAL_ADDRESS_PROP_NAME);
+               transportConfiguration.getParams().remove(TransportConstants.LOCAL_PORT_PROP_NAME);
+               allowableConnections.add(transportConfiguration);
             }
          }
       }
