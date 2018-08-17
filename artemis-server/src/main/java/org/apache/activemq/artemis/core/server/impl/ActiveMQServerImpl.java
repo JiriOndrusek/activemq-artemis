@@ -2140,6 +2140,10 @@ public class ActiveMQServerImpl implements ActiveMQServer {
 
       backupManager = new BackupManager(this, executorFactory, scheduledPool, nodeManager, configuration, clusterManager);
 
+
+      if (logger.isTraceEnabled()) {
+         logger.trace("jondruse: clusterManager=" + clusterManager);
+      }
       clusterManager.deploy();
 
       remotingService = new RemotingServiceImpl(clusterManager, configuration, this, managementService, scheduledPool, protocolManagerFactories, executorFactory.getExecutor(), serviceRegistry);

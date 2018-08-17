@@ -190,6 +190,13 @@ public final class SharedStoreBackupActivation extends Activation {
       BackupTopologyListener backupListener;
 
       FailbackChecker() {
+         if (logger.isTraceEnabled()) {
+            logger.trace("jondruse: activeMQServer="+activeMQServer);
+            logger.trace("jondruse: activeMQServer.getClusterManager()="+activeMQServer.getClusterManager());
+            logger.trace("jondruse: activeMQServer.getClusterManager().getDefaultConnection(null)="+activeMQServer.getClusterManager().getDefaultConnection(null));
+         };
+
+
          TransportConfiguration connector = activeMQServer.getClusterManager().getDefaultConnection(null).getConnector();
          backupListener = new BackupTopologyListener(activeMQServer.getNodeID().toString(), connector);
          activeMQServer.getClusterManager().getDefaultConnection(null).addClusterTopologyListener(backupListener);

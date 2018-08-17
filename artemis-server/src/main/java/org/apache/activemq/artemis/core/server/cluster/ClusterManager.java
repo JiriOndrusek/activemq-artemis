@@ -617,6 +617,10 @@ public final class ClusterManager implements ActiveMQComponent {
       }
 
       if (defaultClusterConnection == null) {
+         if (logger.isTraceEnabled()) {
+            logger.trace("jondruse: defaultClusterConnection=" + clusterConnection);
+         }
+
          defaultClusterConnection = clusterConnection;
          clusterController.setDefaultClusterConnectionName(defaultClusterConnection.getName());
       }
