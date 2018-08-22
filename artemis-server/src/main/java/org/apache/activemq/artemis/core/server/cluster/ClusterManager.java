@@ -230,6 +230,9 @@ public final class ClusterManager implements ActiveMQComponent {
    }
 
    public synchronized void deploy() throws Exception {
+      if (logger.isTraceEnabled()) {
+         logger.trace("jondruse: clusterManager.deploy");
+      }
       if (state == State.STOPPED) {
          state = State.DEPLOYED;
       } else {
@@ -298,6 +301,9 @@ public final class ClusterManager implements ActiveMQComponent {
 
    @Override
    public void stop() throws Exception {
+      if (logger.isTraceEnabled()) {
+         logger.trace("jondruse: clusterManager.stop");
+      }
       haManager.stop();
       synchronized (this) {
          if (state == State.STOPPED || state == State.STOPPING) {
@@ -537,6 +543,9 @@ public final class ClusterManager implements ActiveMQComponent {
 
    // for testing
    public void clear() {
+      if (logger.isTraceEnabled()) {
+         logger.trace("jondruse: clusterManager.clear");
+      }
       for (Bridge bridge : bridges.values()) {
          try {
             bridge.stop();
@@ -565,11 +574,18 @@ public final class ClusterManager implements ActiveMQComponent {
    // Private methods ----------------------------------------------------------------------------------------------------
 
    private void clearClusterConnections() {
+      if (logger.isTraceEnabled()) {
+         logger.trace("jondruse: ClusterManager.clearClusterConnections" + clusterConnections.getClass());
+         logger.trace("jondruse: ClusterManager.clearClusterConnections" + clusterConnections);
+      }
       clusterConnections.clear();
       this.defaultClusterConnection = null;
    }
 
    private void deployClusterConnection(final ClusterConnectionConfiguration config) throws Exception {
+      if (logger.isTraceEnabled()) {
+         logger.trace("jondruse: clusterManager.deployClusterConnection");
+      }
 
       if (!config.validateConfiguration()) {
          return;
@@ -615,7 +631,9 @@ public final class ClusterManager implements ActiveMQComponent {
 
          clusterController.addClusterConnection(clusterConnection.getName(), tcConfigs, config);
       }
-
+      if (logger.isTraceEnabled()) {
+         logger.trace("jondruse: intializing defaultClusterConnection.");
+      }
       if (defaultClusterConnection == null) {
          if (logger.isTraceEnabled()) {
             logger.trace("jondruse: defaultClusterConnection=" + clusterConnection);

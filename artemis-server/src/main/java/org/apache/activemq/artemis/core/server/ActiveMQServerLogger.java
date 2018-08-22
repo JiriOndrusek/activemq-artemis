@@ -1586,4 +1586,9 @@ public interface ActiveMQServerLogger extends BasicLogger {
    @Message(id = 224081, value = "The component {0} is not responsive", format = Message.Format.MESSAGE_FORMAT)
    void criticalSystemLog(Object component);
 
+   @LogMessage(level = Logger.Level.WARN)
+   @Message(id = 224082,
+           value = "Activation will not be registered, because server is already shutting down.",
+           format = Message.Format.MESSAGE_FORMAT)
+   void activationIsSkipedBecauseShuttingDown();
 }

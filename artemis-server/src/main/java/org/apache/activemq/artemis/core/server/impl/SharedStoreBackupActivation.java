@@ -29,6 +29,7 @@ import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.ActiveMQServerLogger;
 import org.apache.activemq.artemis.core.server.NodeManager;
 import org.apache.activemq.artemis.core.server.QueueFactory;
+import org.apache.activemq.artemis.core.server.cluster.ClusterConnection;
 import org.apache.activemq.artemis.core.server.cluster.ha.ScaleDownPolicy;
 import org.apache.activemq.artemis.core.server.cluster.ha.SharedStoreSlavePolicy;
 import org.apache.activemq.artemis.core.server.group.GroupingHandler;
@@ -196,10 +197,16 @@ public final class SharedStoreBackupActivation extends Activation {
             logger.trace("jondruse: activeMQServer.getClusterManager().getDefaultConnection(null)="+activeMQServer.getClusterManager().getDefaultConnection(null));
          };
 
+         ClusterConnection clusterConnection = activeMQServer.getClusterManager().getDefaultConnection(null);
+         if(clusterConnection != null) {
+            TransportConfiguration connector = clusterConnection.getConnector();
+            backupListener = new BackupTopologyListener(activeMQServer.getNodeID().toString(), connector);
+            activeMQServer.getClusterManager().getDefaultConnection(null).addClusterTopologyListener(backupListener);
+         } else {
+            ActiveMQServerLogger.LOGGER.activationIsSkipedBecauseShuttingDown();
+         }
 
-         TransportConfiguration connector = activeMQServer.getClusterManager().getDefaultConnection(null).getConnector();
-         backupListener = new BackupTopologyListener(activeMQServer.getNodeID().toString(), connector);
-         activeMQServer.getClusterManager().getDefaultConnection(null).addClusterTopologyListener(backupListener);
+
       }
 
       private boolean restarting = false;
