@@ -29,6 +29,7 @@ import org.apache.activemq.artemis.core.server.ActiveMQServer;
 import org.apache.activemq.artemis.core.server.ActiveMQServerLogger;
 import org.apache.activemq.artemis.core.server.NodeManager;
 import org.apache.activemq.artemis.core.server.QueueFactory;
+import org.apache.activemq.artemis.core.server.cluster.ClusterConnection;
 import org.apache.activemq.artemis.core.server.cluster.ha.ScaleDownPolicy;
 import org.apache.activemq.artemis.core.server.cluster.ha.SharedStoreSlavePolicy;
 import org.apache.activemq.artemis.core.server.group.GroupingHandler;
@@ -190,9 +191,14 @@ public final class SharedStoreBackupActivation extends Activation {
       BackupTopologyListener backupListener;
 
       FailbackChecker() {
-         TransportConfiguration connector = activeMQServer.getClusterManager().getDefaultConnection(null).getConnector();
-         backupListener = new BackupTopologyListener(activeMQServer.getNodeID().toString(), connector);
-         activeMQServer.getClusterManager().getDefaultConnection(null).addClusterTopologyListener(backupListener);
+         ClusterConnection clusterConnection = activeMQServer.getClusterManager().getDefaultConnection(null);
+         if(clusterConnection != null) {
+            TransportConfiguration connector = clusterConnection.getConnector();
+            backupListener = new BackupTopologyListener(activeMQServer.getNodeID().toString(), connector);
+            clusterConnection.addClusterTopologyListener(backupListener);
+         } else {
+            logger.debug("Failback is ignored because of server shutdown");
+         }
       }
 
       private boolean restarting = false;
